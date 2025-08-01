@@ -6,6 +6,10 @@ import AddListingPage from "./pages/AddListing";
 import HomePage from "./pages/Home";
 import MarketplacePage from "./pages/Marketplace";
 import ProductDetailPage from "./pages/ProductDetail";
+import AboutPage from "./pages/About";
+import MyListingsPage from "./pages/MyListings";
+import MessagesPage from "./pages/Messages";
+import ProfilePage from "./pages/Profile";
 import PrivateRoute from "./components/PrivateRoute";
 import PublicRoute from "./components/PublicRoute";
 import Navbar from "./components/Navbar";
@@ -22,6 +26,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/marketplace" element={<MarketplacePage />} />
+            <Route path="/about" element={<AboutPage />} />
             <Route path="/product/:id" element={<ProductDetailPage />} />
             <Route
               path="/register"
@@ -52,6 +57,30 @@ export default function App() {
               element={
                 <PrivateRoute>
                   <AddListingPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/my-listings"
+              element={
+                <PrivateRoute>
+                  <MyListingsPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/messages"
+              element={
+                <PrivateRoute>
+                  <MessagesPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <PrivateRoute>
+                  <ProfilePage />
                 </PrivateRoute>
               }
             />

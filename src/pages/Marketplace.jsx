@@ -56,7 +56,7 @@ const Marketplace = () => {
               to="/login"
               className="border-2 border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
             >
-              Sign In
+              Login
             </Link>
           </div>
         </div>
@@ -136,13 +136,13 @@ const Marketplace = () => {
             to="/register"
             className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors"
           >
-            Create Account
+            Register
           </Link>
           <Link
             to="/login"
             className="border-2 border-blue-600 text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-600 hover:text-white transition-colors"
           >
-            Sign In
+            Login
           </Link>
         </div>
       </div>

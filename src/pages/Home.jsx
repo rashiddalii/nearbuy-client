@@ -125,13 +125,13 @@ const HomePage = () => {
               to="/register"
               className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-colors"
             >
-              Create Account
+              Register
             </Link>
             <Link
               to="/login"
               className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-white hover:text-blue-600 transition-colors"
             >
-              Sign In
+              Login
             </Link>
           </div>
         </div>
