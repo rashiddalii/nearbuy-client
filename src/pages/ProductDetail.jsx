@@ -11,17 +11,17 @@ const ProductDetail = () => {
   const product = {
     id: 1,
     title: "iPhone 13 Pro - Excellent Condition",
-    description: "Selling my iPhone 13 Pro in excellent condition. 256GB, Pacific Blue. Comes with original box and charger. This phone has been my daily driver for about a year and has been well taken care of. No scratches on the screen, minor wear on the edges. Battery health is at 92%. Perfect for someone looking for a high-quality iPhone at a great price.",
+    description: "Selling my iPhone 13 Pro in excellent condition. 256GB, Pacific Blue. Includes original box and charger. No scratches or damage. Perfect for anyone looking for a high-quality smartphone at a great price.",
     price: 799,
     category: "Electronics",
     condition: "Excellent",
     location: "Downtown, City",
     images: [
-      "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=600&h=400&fit=crop",
-      "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=600&h=400&fit=crop",
-      "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=600&h=400&fit=crop"
+      "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&h=300&fit=crop",
+      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=300&fit=crop",
+      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=300&fit=crop"
     ],
-    seller: { 
+    seller: {
       name: "John Doe",
       rating: 4.8,
       reviews: 24,
@@ -33,7 +33,9 @@ const ProductDetail = () => {
   };
 
   const handleContactSeller = () => {
-    toast.info('Contact feature coming soon!');
+    // In real app, this would create or navigate to existing conversation
+    const conversationId = Math.floor(Math.random() * 1000) + 1;
+    navigate(`/conversation/${conversationId}`);
   };
 
   const handleSaveItem = () => {
@@ -41,15 +43,16 @@ const ProductDetail = () => {
   };
 
   const handleShare = () => {
-    navigator.share ? 
+    if (navigator.share) {
       navigator.share({
         title: product.title,
-        text: product.description,
+        text: `Check out this ${product.title} for $${product.price}`,
         url: window.location.href
-      }) :
-      navigator.clipboard.writeText(window.location.href).then(() => {
-        toast.success('Link copied to clipboard!');
       });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success('Link copied to clipboard!');
+    }
   };
 
   return (
@@ -72,9 +75,9 @@ const ProductDetail = () => {
           {/* Product Images */}
           <div className="space-y-4">
             <div className="aspect-w-1 aspect-h-1 bg-gray-200 rounded-lg overflow-hidden">
-              <img
-                src={product.images[selectedImage]}
-                alt={product.title}
+              <img 
+                src={product.images[selectedImage]} 
+                alt={product.title} 
                 className="w-full h-96 object-cover"
               />
             </div>
@@ -88,9 +91,9 @@ const ProductDetail = () => {
                       selectedImage === index ? 'border-blue-500' : 'border-gray-200'
                     }`}
                   >
-                    <img
-                      src={image}
-                      alt={`${product.title} ${index + 1}`}
+                    <img 
+                      src={image} 
+                      alt={`${product.title} ${index + 1}`} 
                       className="w-full h-20 object-cover"
                     />
                   </button>
@@ -104,13 +107,11 @@ const ProductDetail = () => {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.title}</h1>
               <div className="text-3xl font-bold text-green-600 mb-4">${product.price}</div>
-              
               <div className="flex items-center space-x-4 text-sm text-gray-600 mb-4">
                 <span>📍 {product.location}</span>
                 <span>👁️ {product.views} views</span>
                 <span>❤️ {product.saved} saved</span>
               </div>
-
               <div className="flex items-center space-x-4 mb-6">
                 <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
                   {product.condition}
@@ -123,26 +124,19 @@ const ProductDetail = () => {
 
             {/* Seller Info */}
             <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
-                    <span className="text-white font-bold text-lg">
-                      {product.seller.name.charAt(0)}
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{product.seller.name}</h3>
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <span>⭐ {product.seller.rating}</span>
-                      <span>({product.seller.reviews} reviews)</span>
-                      <span>• Member since {product.seller.memberSince}</span>
-                    </div>
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white text-lg">
+                  👨
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">{product.seller.name}</h3>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-yellow-600">⭐ {product.seller.rating}</span>
+                    <span className="text-gray-600 text-sm">({product.seller.reviews} reviews)</span>
                   </div>
                 </div>
-                <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                  View Profile
-                </button>
               </div>
+              <p className="text-sm text-gray-600">Member since {product.seller.memberSince}</p>
             </div>
 
             {/* Action Buttons */}
@@ -151,46 +145,51 @@ const ProductDetail = () => {
                 onClick={handleContactSeller}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-medium transition-colors"
               >
-                Contact Seller
+                💬 Contact Seller
               </button>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={handleSaveItem}
                   className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium transition-colors"
                 >
-                  Save Item
+                  ❤️ Save Item
                 </button>
                 <button
                   onClick={handleShare}
                   className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium transition-colors"
                 >
-                  Share
+                  📤 Share
                 </button>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Description */}
+        {/* Description */}
+        <div className="px-6 py-6 border-t border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Description</h2>
+          <p className="text-gray-600 leading-relaxed">{product.description}</p>
+        </div>
+
+        {/* Additional Info */}
+        <div className="px-6 py-6 border-t border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Additional Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Description</h3>
-              <p className="text-gray-600 leading-relaxed">{product.description}</p>
+              <span className="text-gray-600">Listed:</span>
+              <span className="ml-2 text-gray-900">{new Date(product.createdAt).toLocaleDateString()}</span>
             </div>
-
-            {/* Additional Info */}
-            <div className="border-t border-gray-200 pt-6">
-              <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
-                <div>
-                  <span className="font-medium">Listed:</span> {new Date(product.createdAt).toLocaleDateString()}
-                </div>
-                <div>
-                  <span className="font-medium">Condition:</span> {product.condition}
-                </div>
-                <div>
-                  <span className="font-medium">Category:</span> {product.category}
-                </div>
-                <div>
-                  <span className="font-medium">Location:</span> {product.location}
-                </div>
-              </div>
+            <div>
+              <span className="text-gray-600">Condition:</span>
+              <span className="ml-2 text-gray-900">{product.condition}</span>
+            </div>
+            <div>
+              <span className="text-gray-600">Category:</span>
+              <span className="ml-2 text-gray-900">{product.category}</span>
+            </div>
+            <div>
+              <span className="text-gray-600">Location:</span>
+              <span className="ml-2 text-gray-900">{product.location}</span>
             </div>
           </div>
         </div>
@@ -199,11 +198,8 @@ const ProductDetail = () => {
       {/* Similar Items Section */}
       <div className="mt-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Similar Items</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Similar items would go here */}
-          <div className="bg-white rounded-lg shadow-sm p-4 text-center">
-            <p className="text-gray-500">More items coming soon...</p>
-          </div>
+        <div className="bg-white rounded-lg shadow-sm p-4 text-center">
+          <p className="text-gray-500">More items coming soon...</p>
         </div>
       </div>
     </div>

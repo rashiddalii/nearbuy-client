@@ -3,12 +3,14 @@ import RegisterPage from "./pages/Register";
 import LoginPage from "./pages/Login";
 import DashboardPage from "./pages/Dashboard";
 import AddListingPage from "./pages/AddListing";
+import EditListingPage from "./pages/EditListing";
 import HomePage from "./pages/Home";
 import MarketplacePage from "./pages/Marketplace";
 import ProductDetailPage from "./pages/ProductDetail";
 import AboutPage from "./pages/About";
 import MyListingsPage from "./pages/MyListings";
 import MessagesPage from "./pages/Messages";
+import ConversationPage from "./pages/Conversation";
 import ProfilePage from "./pages/Profile";
 import PrivateRoute from "./components/PrivateRoute";
 import PublicRoute from "./components/PublicRoute";
@@ -61,6 +63,14 @@ export default function App() {
               }
             />
             <Route
+              path="/edit-listing/:id"
+              element={
+                <PrivateRoute>
+                  <EditListingPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
               path="/my-listings"
               element={
                 <PrivateRoute>
@@ -73,6 +83,14 @@ export default function App() {
               element={
                 <PrivateRoute>
                   <MessagesPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/conversation/:conversationId"
+              element={
+                <PrivateRoute>
+                  <ConversationPage />
                 </PrivateRoute>
               }
             />

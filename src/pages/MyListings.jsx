@@ -97,9 +97,12 @@ const MyListings = () => {
                       Listed {new Date(listing.createdAt).toLocaleDateString()}
                     </span>
                     <div className="flex items-center space-x-2">
-                      <button className="text-xs bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700 transition-colors">
+                      <Link
+                        to={`/edit-listing/${listing.id}`}
+                        className="text-xs bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700 transition-colors"
+                      >
                         Edit
-                      </button>
+                      </Link>
                       <button className="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition-colors">
                         Delete
                       </button>

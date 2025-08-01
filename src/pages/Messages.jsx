@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const Messages = () => {
   const [conversations] = useState([
@@ -31,7 +32,11 @@ const Messages = () => {
         {conversations.length > 0 ? (
           <div className="divide-y divide-gray-200">
             {conversations.map((conversation) => (
-              <div key={conversation.id} className="p-4 hover:bg-gray-50 cursor-pointer">
+              <Link
+                key={conversation.id}
+                to={`/conversation/${conversation.id}`}
+                className="block p-4 hover:bg-gray-50 transition-colors"
+              >
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white text-xl">
                     {conversation.avatar}
@@ -47,7 +52,7 @@ const Messages = () => {
                     <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
                   )}
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         ) : (
