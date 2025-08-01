@@ -21,9 +21,11 @@ const ProductCard = ({ product }) => {
 
       {/* Product Info */}
       <div className="p-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2">
-          {product.title}
-        </h3>
+        <Link to={`/product/${product.id}`}>
+          <h3 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2 hover:text-blue-600 transition-colors cursor-pointer">
+            {product.title}
+          </h3>
+        </Link>
         
         <p className="text-gray-600 text-sm mb-3 line-clamp-2">
           {product.description}
@@ -58,9 +60,12 @@ const ProductCard = ({ product }) => {
 
         {/* Action Buttons */}
         <div className="flex space-x-2">
-          <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors">
-            Contact Seller
-          </button>
+          <Link
+            to={`/product/${product.id}`}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors text-center"
+          >
+            View Details
+          </Link>
           <button className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-3 rounded-md text-sm font-medium transition-colors">
             Save
           </button>

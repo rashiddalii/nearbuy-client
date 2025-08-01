@@ -4,6 +4,8 @@ import LoginPage from "./pages/Login";
 import DashboardPage from "./pages/Dashboard";
 import AddListingPage from "./pages/AddListing";
 import HomePage from "./pages/Home";
+import MarketplacePage from "./pages/Marketplace";
+import ProductDetailPage from "./pages/ProductDetail";
 import PrivateRoute from "./components/PrivateRoute";
 import PublicRoute from "./components/PublicRoute";
 import Navbar from "./components/Navbar";
@@ -19,6 +21,8 @@ export default function App() {
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           <Routes>
             <Route path="/" element={<HomePage />} />
+            <Route path="/marketplace" element={<MarketplacePage />} />
+            <Route path="/product/:id" element={<ProductDetailPage />} />
             <Route
               path="/register"
               element={
