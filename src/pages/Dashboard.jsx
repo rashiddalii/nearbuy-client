@@ -1,136 +1,86 @@
 // src/pages/Dashboard.jsx
-import { useEffect, useState } from "react";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
-import ProductCard from "../components/ProductCard";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import ProductCard from '../components/ProductCard';
+import { productsAPI, dashboardAPI } from '../services/api';
+import { toast } from 'react-toastify';
 
-export default function Dashboard() {
-  const [user, setUser] = useState(null);
+const Dashboard = () => {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
+  const [userStats, setUserStats] = useState({
+    totalListings: 0,
+    activeListings: 0,
+    totalViews: 0,
+    totalSaves: 0
+  });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
 
-  const navigate = useNavigate();
+  const categories = ["all", "Electronics", "Fashion", "Sports", "Furniture", "Books", "Music", "Home & Garden", "Toys", "Automotive", "Other"];
 
-  // Mock data for demonstration - replace with actual API calls
-  const mockProducts = [
-    {
-      id: 1,
-      title: "iPhone 13 Pro - Excellent Condition",
-      description: "Selling my iPhone 13 Pro in excellent condition. 256GB, Pacific Blue. Comes with original box and charger.",
-      price: 799,
-      category: "Electronics",
-      image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&h=300&fit=crop",
-      seller: { name: "John Doe" },
-      createdAt: "2024-01-15"
-    },
-    {
-      id: 2,
-      title: "Vintage Leather Jacket",
-      description: "Beautiful vintage leather jacket from the 80s. Size M, perfect condition. Great for collectors.",
-      price: 150,
-      category: "Fashion",
-      image: "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&h=300&fit=crop",
-      seller: { name: "Sarah Wilson" },
-      createdAt: "2024-01-14"
-    },
-    {
-      id: 3,
-      title: "Mountain Bike - Trek Marlin 7",
-      description: "2022 Trek Marlin 7 mountain bike. Used for 6 months, perfect for trails and commuting.",
-      price: 450,
-      category: "Sports",
-      image: "https://images.unsplash.com/photo-1571068316344-75bc76f77890?w=400&h=300&fit=crop",
-      seller: { name: "Mike Johnson" },
-      createdAt: "2024-01-13"
-    },
-    {
-      id: 4,
-      title: "Coffee Table - Modern Design",
-      description: "Beautiful modern coffee table made of solid wood. Perfect for living room. Pickup only.",
-      price: 120,
-      category: "Furniture",
-      image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300&fit=crop",
-      seller: { name: "Emma Davis" },
-      createdAt: "2024-01-12"
-    },
-    {
-      id: 5,
-      title: "Guitar - Fender Stratocaster",
-      description: "2019 Fender Stratocaster in sunburst finish. Excellent condition, comes with case and strap.",
-      price: 650,
-      category: "Music",
-      image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop",
-      seller: { name: "Alex Chen" },
-      createdAt: "2024-01-11"
-    },
-    {
-      id: 6,
-      title: "Gaming Laptop - ASUS ROG",
-      description: "ASUS ROG gaming laptop with RTX 3060, 16GB RAM, 512GB SSD. Great for gaming and work.",
-      price: 899,
-      category: "Electronics",
-      image: "https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=400&h=300&fit=crop",
-      seller: { name: "David Kim" },
-      createdAt: "2024-01-10"
+  // Fetch all products for dashboard (marketplace view)
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const params = {
+        search: searchTerm || undefined,
+        category: selectedCategory !== "all" ? selectedCategory : undefined,
+        sort: sortBy,
+        limit: 12
+      };
+
+      const response = await productsAPI.getAll(params);
+      setProducts(response.data.products);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      setError('Failed to load products. Please try again.');
+      toast.error('Failed to load products');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
+  // Fetch user stats
+  const fetchUserStats = async () => {
+    try {
+      const response = await productsAPI.getMyListings();
+      const userProducts = response.data;
+      
+      const stats = {
+        totalListings: userProducts.length,
+        activeListings: userProducts.filter(p => p.status === 'active').length,
+        totalViews: userProducts.reduce((sum, p) => sum + (p.views || 0), 0),
+        totalSaves: userProducts.reduce((sum, p) => sum + (p.saves || 0), 0)
+      };
+      
+      setUserStats(stats);
+    } catch (err) {
+      console.error('Error fetching user stats:', err);
+    }
+  };
+
+  // Fetch data on component mount and when filters change
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    fetchProducts();
+    fetchUserStats();
+  }, [searchTerm, selectedCategory, sortBy]);
 
-    // Fetch user data
-    axios
-      .get("http://localhost:5000/api/auth/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        setUser(res.data.user);
-      })
-      .catch((err) => {
-        toast.error("Failed to load user info.");
-      })
-      .finally(() => setLoading(false));
+  const handleSearch = (e) => {
+    setSearchTerm(e.target.value);
+  };
 
-    // For now, use mock data - replace with actual API call
-    setProducts(mockProducts);
-  }, []);
+  const handleCategoryChange = (e) => {
+    setSelectedCategory(e.target.value);
+  };
 
-  // Filter and sort products
-  const filteredProducts = products
-    .filter(product => {
-      const matchesSearch = product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           product.description.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
-      return matchesSearch && matchesCategory;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case "price-low":
-          return a.price - b.price;
-        case "price-high":
-          return b.price - a.price;
-        case "newest":
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        case "oldest":
-          return new Date(a.createdAt) - new Date(b.createdAt);
-        default:
-          return 0;
-      }
-    });
-
-  const categories = ["all", "Electronics", "Fashion", "Sports", "Furniture", "Music", "Books", "Home & Garden"];
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  const handleSortChange = (e) => {
+    setSortBy(e.target.value);
+  };
 
   return (
     <div className="space-y-6">
@@ -139,10 +89,10 @@ export default function Dashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Marketplace
+              Dashboard
             </h1>
             <p className="text-gray-600">
-              Welcome back, {user?.name || user?.email || "User"}! Discover amazing local deals.
+              Welcome back! Here's what's happening in your marketplace.
             </p>
           </div>
           <button
@@ -154,25 +104,84 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Search and Filters */}
+      {/* User Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg shadow-sm p-6 text-center">
+          <div className="text-2xl font-bold text-blue-600">{userStats.totalListings}</div>
+          <div className="text-gray-600">My Listings</div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm p-6 text-center">
+          <div className="text-2xl font-bold text-green-600">{userStats.activeListings}</div>
+          <div className="text-gray-600">Active</div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm p-6 text-center">
+          <div className="text-2xl font-bold text-purple-600">{userStats.totalViews}</div>
+          <div className="text-gray-600">Total Views</div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm p-6 text-center">
+          <div className="text-2xl font-bold text-red-600">{userStats.totalSaves}</div>
+          <div className="text-gray-600">Total Saves</div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* Search */}
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button
+            onClick={() => navigate("/my-listings")}
+            className="p-4 border-2 border-blue-200 rounded-lg hover:border-blue-400 transition-colors text-left"
+          >
+            <div className="text-blue-600 text-2xl mb-2">📝</div>
+            <h3 className="font-semibold text-gray-900">My Listings</h3>
+            <p className="text-sm text-gray-600">Manage your products</p>
+          </button>
+          <button
+            onClick={() => navigate("/add-listing")}
+            className="p-4 border-2 border-green-200 rounded-lg hover:border-green-400 transition-colors text-left"
+          >
+            <div className="text-green-600 text-2xl mb-2">➕</div>
+            <h3 className="font-semibold text-gray-900">Add New Listing</h3>
+            <p className="text-sm text-gray-600">Create a new product</p>
+          </button>
+          <button
+            onClick={() => navigate("/messages")}
+            className="p-4 border-2 border-purple-200 rounded-lg hover:border-purple-400 transition-colors text-left"
+          >
+            <div className="text-purple-600 text-2xl mb-2">💬</div>
+            <h3 className="font-semibold text-gray-900">Messages</h3>
+            <p className="text-sm text-gray-600">View conversations</p>
+          </button>
+        </div>
+      </div>
+
+      {/* Marketplace Section */}
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-gray-900">Recent Listings</h2>
+          <button
+            onClick={() => navigate("/marketplace")}
+            className="text-blue-600 hover:text-blue-700 font-medium"
+          >
+            View All →
+          </button>
+        </div>
+
+        {/* Search and Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="md:col-span-2">
             <input
               type="text"
               placeholder="Search products..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleSearch}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
-
-          {/* Category Filter */}
           <div>
             <select
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
+              onChange={handleCategoryChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {categories.map(category => (
@@ -182,68 +191,86 @@ export default function Dashboard() {
               ))}
             </select>
           </div>
-
-          {/* Sort */}
           <div>
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
+              onChange={handleSortChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
               <option value="price-low">Price: Low to High</option>
               <option value="price-high">Price: High to Low</option>
+              <option value="oldest">Oldest First</option>
             </select>
           </div>
         </div>
-      </div>
 
-      {/* Results Count */}
-      <div className="flex items-center justify-between">
-        <p className="text-gray-600">
-          Showing {filteredProducts.length} of {products.length} products
-        </p>
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-500">View:</span>
-          <button className="p-2 text-blue-600 border border-blue-600 rounded">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-            </svg>
-          </button>
-          <button className="p-2 text-gray-400 border border-gray-300 rounded">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Products Grid */}
-      {filteredProducts.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-          <div className="text-6xl mb-4">🔍</div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No products found</h3>
-          <p className="text-gray-600 mb-6">
-            Try adjusting your search terms or filters to find what you're looking for.
+        {/* Results Count */}
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-gray-600">
+            {loading ? 'Loading...' : `Showing ${products.length} products`}
           </p>
-          <button
-            onClick={() => {
-              setSearchTerm("");
-              setSelectedCategory("all");
-            }}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
-          >
-            Clear Filters
-          </button>
         </div>
-      )}
+
+        {/* Loading State */}
+        {loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, index) => (
+              <div key={index} className="bg-gray-100 rounded-lg shadow-md overflow-hidden animate-pulse">
+                <div className="h-48 bg-gray-200"></div>
+                <div className="p-4 space-y-3">
+                  <div className="h-4 bg-gray-200 rounded"></div>
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <div className="bg-red-50 rounded-lg p-6 text-center">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Error loading products</h3>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <button
+              onClick={() => fetchProducts()}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {/* Products Grid */}
+        {!loading && !error && products.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {products.map((product) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && products.length === 0 && (
+          <div className="bg-gray-50 rounded-lg p-12 text-center">
+            <div className="text-6xl mb-4">🔍</div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No products found</h3>
+            <p className="text-gray-600 mb-6">
+              Try adjusting your search terms or filters to find what you're looking for.
+            </p>
+            <button
+              onClick={() => navigate("/add-listing")}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+            >
+              Be the First to List
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
-}
+};
+
+export default Dashboard;

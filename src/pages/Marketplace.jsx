@@ -1,41 +1,65 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
+import { productsAPI } from '../services/api';
+import { toast } from 'react-toastify';
 
 const Marketplace = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-
-  const products = [
-    {
-      id: 1,
-      title: "iPhone 13 Pro - Excellent Condition",
-      description: "Selling my iPhone 13 Pro in excellent condition. 256GB, Pacific Blue.",
-      price: 799,
-      category: "Electronics",
-      image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&h=300&fit=crop",
-      seller: { name: "John Doe" },
-      createdAt: "2024-01-15"
-    },
-    {
-      id: 2,
-      title: "Vintage Leather Jacket",
-      description: "Beautiful vintage leather jacket from the 80s. Size M, perfect condition.",
-      price: 150,
-      category: "Fashion",
-      image: "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&h=300&fit=crop",
-      seller: { name: "Sarah Wilson" },
-      createdAt: "2024-01-14"
-    }
-  ];
-
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    total: 1,
+    hasNext: false,
+    hasPrev: false
   });
 
-  const categories = ["all", "Electronics", "Fashion", "Sports", "Furniture"];
+  const categories = ["all", "Electronics", "Fashion", "Sports", "Furniture", "Books", "Music", "Home & Garden", "Toys", "Automotive", "Other"];
+
+  // Fetch products from backend
+  const fetchProducts = async (page = 1) => {
+    try {
+      setLoading(true);
+      const params = {
+        page,
+        limit: 12,
+        search: searchTerm || undefined,
+        category: selectedCategory !== "all" ? selectedCategory : undefined,
+        sort: 'newest'
+      };
+
+      const response = await productsAPI.getAll(params);
+      setProducts(response.data.products);
+      setPagination(response.data.pagination);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      setError('Failed to load products. Please try again.');
+      toast.error('Failed to load products');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch products on component mount and when filters change
+  useEffect(() => {
+    fetchProducts(1);
+  }, [searchTerm, selectedCategory]);
+
+  const handleSearch = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handleCategoryChange = (e) => {
+    setSelectedCategory(e.target.value);
+  };
+
+  const handlePageChange = (page) => {
+    fetchProducts(page);
+  };
 
   return (
     <div className="space-y-6">
@@ -69,14 +93,14 @@ const Marketplace = () => {
               type="text"
               placeholder="Search products..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleSearch}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           <div>
             <select
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
+              onChange={handleCategoryChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {categories.map(category => (
@@ -91,7 +115,7 @@ const Marketplace = () => {
 
       <div className="flex items-center justify-between">
         <p className="text-gray-600">
-          Showing {filteredProducts.length} of {products.length} products
+          {loading ? 'Loading...' : `Showing ${products.length} products`}
         </p>
         <Link
           to="/register"
@@ -101,13 +125,75 @@ const Marketplace = () => {
         </Link>
       </div>
 
-      {filteredProducts.length > 0 ? (
+      {/* Loading State */}
+      {loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
+          {[...Array(8)].map((_, index) => (
+            <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
+              <div className="h-48 bg-gray-200"></div>
+              <div className="p-4 space-y-3">
+                <div className="h-4 bg-gray-200 rounded"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            </div>
           ))}
         </div>
-      ) : (
+      )}
+
+      {/* Error State */}
+      {error && !loading && (
+        <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">Error loading products</h3>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button
+            onClick={() => fetchProducts(1)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      )}
+
+      {/* Products Grid */}
+      {!loading && !error && products.length > 0 && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {products.map((product) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {pagination.total > 1 && (
+            <div className="flex items-center justify-center space-x-2">
+              <button
+                onClick={() => handlePageChange(pagination.current - 1)}
+                disabled={!pagination.hasPrev}
+                className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                Previous
+              </button>
+              
+              <span className="px-4 py-2 text-gray-600">
+                Page {pagination.current} of {pagination.total}
+              </span>
+              
+              <button
+                onClick={() => handlePageChange(pagination.current + 1)}
+                disabled={!pagination.hasNext}
+                className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Empty State */}
+      {!loading && !error && products.length === 0 && (
         <div className="bg-white rounded-lg shadow-sm p-12 text-center">
           <div className="text-6xl mb-4">🔍</div>
           <h3 className="text-xl font-semibold text-gray-900 mb-2">No products found</h3>

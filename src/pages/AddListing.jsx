@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { productsAPI } from '../services/api';
 
 const AddListing = () => {
   const navigate = useNavigate();
@@ -10,26 +11,18 @@ const AddListing = () => {
     price: '',
     category: '',
     condition: 'good',
+    location: '',
     images: []
   });
   const [loading, setLoading] = useState(false);
 
   const categories = [
-    'Electronics',
-    'Fashion',
-    'Sports',
-    'Furniture',
-    'Books',
-    'Music',
-    'Home & Garden',
-    'Toys & Games',
-    'Automotive',
-    'Other'
+    "Electronics", "Fashion", "Sports", "Furniture", "Books", 
+    "Music", "Home & Garden", "Toys", "Automotive", "Other"
   ];
 
   const conditions = [
     { value: 'new', label: 'New' },
-    { value: 'like-new', label: 'Like New' },
     { value: 'excellent', label: 'Excellent' },
     { value: 'good', label: 'Good' },
     { value: 'fair', label: 'Fair' },
@@ -46,10 +39,17 @@ const AddListing = () => {
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
-    // For now, just store file names - in real app, you'd upload to cloud storage
+    const imageUrls = files.map(file => URL.createObjectURL(file));
     setFormData(prev => ({
       ...prev,
-      images: [...prev.images, ...files.map(file => file.name)]
+      images: [...prev.images, ...imageUrls]
+    }));
+  };
+
+  const removeImage = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
     }));
   };
 
@@ -58,25 +58,23 @@ const AddListing = () => {
     setLoading(true);
 
     try {
-      // Validate form
-      if (!formData.title || !formData.description || !formData.price || !formData.category) {
-        toast.error('Please fill in all required fields');
-        return;
-      }
+      // For now, we'll use placeholder images since we haven't implemented file upload yet
+      const productData = {
+        ...formData,
+        price: parseFloat(formData.price),
+        images: formData.images.length > 0 ? formData.images : [
+          "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop"
+        ]
+      };
 
-      if (formData.price <= 0) {
-        toast.error('Price must be greater than 0');
-        return;
-      }
-
-      // Here you would make an API call to create the listing
-      // For now, we'll simulate the API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
+      await productsAPI.create(productData);
+      
       toast.success('Listing created successfully!');
-      navigate('/dashboard');
+      navigate('/my-listings');
     } catch (error) {
-      toast.error('Failed to create listing. Please try again.');
+      console.error('Error creating listing:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to create listing. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -102,9 +100,9 @@ const AddListing = () => {
               name="title"
               value={formData.title}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="e.g., iPhone 13 Pro - Excellent Condition"
               required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="What are you selling?"
             />
           </div>
 
@@ -118,63 +116,85 @@ const AddListing = () => {
               name="description"
               value={formData.description}
               onChange={handleInputChange}
+              required
               rows={4}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Describe your item in detail..."
-              required
             />
           </div>
 
-          {/* Price and Category */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
-                Price ($) *
-              </label>
+          {/* Price */}
+          <div>
+            <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
+              Price *
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-2 text-gray-500">$</span>
               <input
                 type="number"
                 id="price"
                 name="price"
                 value={formData.price}
                 onChange={handleInputChange}
+                required
                 min="0"
                 step="0.01"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="0.00"
-                required
               />
             </div>
+          </div>
 
-            <div>
-              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
-                Category *
-              </label>
-              <select
-                id="category"
-                name="category"
-                value={formData.category}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              >
-                <option value="">Select a category</option>
-                {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
-            </div>
+          {/* Location */}
+          <div>
+            <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
+              Location *
+            </label>
+            <input
+              type="text"
+              id="location"
+              name="location"
+              value={formData.location}
+              onChange={handleInputChange}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="City, State or Neighborhood"
+            />
+          </div>
+
+          {/* Category */}
+          <div>
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+              Category *
+            </label>
+            <select
+              id="category"
+              name="category"
+              value={formData.category}
+              onChange={handleInputChange}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Select a category</option>
+              {categories.map(category => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Condition */}
           <div>
             <label htmlFor="condition" className="block text-sm font-medium text-gray-700 mb-2">
-              Condition
+              Condition *
             </label>
             <select
               id="condition"
               name="condition"
               value={formData.condition}
               onChange={handleInputChange}
+              required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {conditions.map(condition => (
@@ -187,34 +207,55 @@ const AddListing = () => {
 
           {/* Images */}
           <div>
-            <label htmlFor="images" className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Images
             </label>
-            <input
-              type="file"
-              id="images"
-              name="images"
-              onChange={handleImageUpload}
-              multiple
-              accept="image/*"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              Upload up to 5 images (JPG, PNG, GIF)
-            </p>
+            
+            {/* Current Images */}
             {formData.images.length > 0 && (
-              <div className="mt-2">
-                <p className="text-sm text-gray-600">Selected files:</p>
-                <ul className="text-sm text-gray-500">
-                  {formData.images.map((image, index) => (
-                    <li key={index}>{image}</li>
-                  ))}
-                </ul>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                {formData.images.map((image, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={image}
+                      alt={`Product ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
+
+            {/* Upload New Images */}
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+                id="image-upload"
+              />
+              <label
+                htmlFor="image-upload"
+                className="cursor-pointer text-blue-600 hover:text-blue-700 font-medium"
+              >
+                📷 Upload Images
+              </label>
+              <p className="text-sm text-gray-500 mt-1">
+                Drag and drop images here or click to browse
+              </p>
+            </div>
           </div>
 
-          {/* Submit Buttons */}
+          {/* Action Buttons */}
           <div className="flex space-x-4 pt-4">
             <button
               type="submit"
