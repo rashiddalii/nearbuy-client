@@ -17,11 +17,9 @@ const ProductCard = ({ product }) => {
   } = product;
 
   // Get first image or use placeholder
-  // const imageUrl = images.length > 0 
-  //   ? images[0] 
-  //   : "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop";
-
-  const imageUrl = images[0];
+  const imageUrl = images.length > 0 
+    ? images[0] 
+    : "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop";
 
   // Format seller name
   const sellerName = seller?.name || "Unknown Seller";
@@ -47,9 +45,9 @@ const ProductCard = ({ product }) => {
           src={imageUrl}
           alt={title}
           className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-          // onError={(e) => {
-          //   e.target.src = "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop";
-          // }}
+          onError={(e) => {
+            e.target.src = "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop";
+          }}
         />
         <div className="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-medium">
           {category}
