@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { productsAPI } from '../services/api';
+import { productsAPI, chatAPI } from '../services/api';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -31,10 +31,23 @@ const ProductDetail = () => {
     fetchProduct();
   }, [id]);
 
-  const handleContactSeller = () => {
-    // In real app, this would create or navigate to existing conversation
-    const conversationId = Math.floor(Math.random() * 1000) + 1;
-    navigate(`/conversation/${conversationId}`);
+  const handleContactSeller = async () => {
+    if (product && product.seller && product.seller._id && product._id) {
+      try {
+        // Call backend to get or create chat
+        const res = await chatAPI.getOrCreate({ userId: product.seller._id, productId: product._id });
+        const chat = res.data;
+        if (chat && chat._id) {
+          navigate(`/conversation/${chat._id}`);
+        } else {
+          toast.error('Failed to open chat.');
+        }
+      } catch (err) {
+        toast.error('Failed to open chat.');
+      }
+    } else {
+      toast.error('Seller information not available.');
+    }
   };
 
   const handleSaveItem = () => {

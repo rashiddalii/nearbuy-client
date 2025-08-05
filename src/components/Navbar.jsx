@@ -1,4 +1,5 @@
 import React from 'react';
+import ApiStatus from './ApiStatus';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
@@ -27,6 +28,7 @@ const Navbar = () => {
               <span className="text-2xl">🛍️</span>
               <span className="text-xl font-bold text-gray-800">NearBuy</span>
             </Link>
+            <ApiStatus />
           </div>
 
           {/* Navigation Links - Show different links based on auth status */}

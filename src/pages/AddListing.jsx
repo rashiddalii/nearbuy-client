@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { productsAPI } from '../services/api';
+import axios from 'axios';
 
 const AddListing = () => {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ const AddListing = () => {
     images: []
   });
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const categories = [
     "Electronics", "Fashion", "Sports", "Furniture", "Books", 
@@ -37,13 +39,36 @@ const AddListing = () => {
     }));
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
-    const imageUrls = files.map(file => URL.createObjectURL(file));
-    setFormData(prev => ({
-      ...prev,
-      images: [...prev.images, ...imageUrls]
-    }));
+    setUploading(true);
+    for (const file of files) {
+      const formDataImg = new FormData();
+      formDataImg.append('image', file);
+      try {
+        const res = await axios.post(
+          `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/products/upload-image`,
+          formDataImg,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+        if (res.data && res.data.url) {
+          setFormData(prev => ({
+            ...prev,
+            images: [...prev.images, res.data.url]
+          }));
+        } else {
+          toast.error('Image upload failed.');
+        }
+      } catch (err) {
+        toast.error('Image upload failed.');
+      }
+    }
+    setUploading(false);
   };
 
   const removeImage = (index) => {
@@ -58,17 +83,11 @@ const AddListing = () => {
     setLoading(true);
 
     try {
-      // For now, we'll use placeholder images since we haven't implemented file upload yet
       const productData = {
         ...formData,
         price: parseFloat(formData.price),
-        images: formData.images.length > 0 ? formData.images : [
-          "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop"
-        ]
       };
-
       await productsAPI.create(productData);
-      
       toast.success('Listing created successfully!');
       navigate('/my-listings');
     } catch (error) {
@@ -235,19 +254,20 @@ const AddListing = () => {
 
             {/* Upload New Images */}
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
-                id="image-upload"
-              />
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={uploading ? undefined : handleImageUpload}
+              className="hidden"
+              id="image-upload"
+              disabled={uploading}
+            />
               <label
                 htmlFor="image-upload"
-                className="cursor-pointer text-blue-600 hover:text-blue-700 font-medium"
+                className={`cursor-pointer text-blue-600 hover:text-blue-700 font-medium ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
               >
-                📷 Upload Images
+                {uploading ? 'Uploading...' : '📷 Upload Images'}
               </label>
               <p className="text-sm text-gray-500 mt-1">
                 Drag and drop images here or click to browse

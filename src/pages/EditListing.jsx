@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { productsAPI } from '../services/api';
 
 const EditListing = () => {
   const { id } = useParams();
@@ -28,31 +29,30 @@ const EditListing = () => {
     { value: 'poor', label: 'Poor' }
   ];
 
-  // Mock data - in real app, fetch by ID
+  // Fetch real product data by ID
   useEffect(() => {
-    // Simulate fetching listing data
-    const mockListing = {
-      id: id,
-      title: "iPhone 13 Pro - Excellent Condition",
-      description: "Selling my iPhone 13 Pro in excellent condition. 256GB, Pacific Blue. Includes original box and charger. No scratches or damage.",
-      price: 799,
-      category: "Electronics",
-      condition: "excellent",
-      images: [
-        "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&h=300&fit=crop",
-        "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=300&fit=crop"
-      ]
+    const fetchProduct = async () => {
+      setLoading(true);
+      try {
+        const res = await productsAPI.getById(id);
+        const product = res.data;
+        setFormData({
+          title: product.title || '',
+          description: product.description || '',
+          price: product.price || '',
+          category: product.category || '',
+          condition: product.condition || 'good',
+          images: product.images || []
+        });
+      } catch (error) {
+        toast.error('Failed to load product for editing.');
+        navigate('/my-listings');
+      } finally {
+        setLoading(false);
+      }
     };
-
-    setFormData({
-      title: mockListing.title,
-      description: mockListing.description,
-      price: mockListing.price,
-      category: mockListing.category,
-      condition: mockListing.condition,
-      images: mockListing.images
-    });
-  }, [id]);
+    fetchProduct();
+  }, [id, navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -81,11 +81,8 @@ const EditListing = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await productsAPI.update(id, formData);
       toast.success('Listing updated successfully!');
       navigate('/my-listings');
     } catch (error) {

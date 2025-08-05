@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { chatAPI } from '../services/api';
+import { io } from 'socket.io-client';
 
 const Conversation = () => {
   const { conversationId } = useParams();
@@ -8,58 +10,55 @@ const Conversation = () => {
   const messagesEndRef = useRef(null);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [chat, setChat] = useState(null); // chat object from backend
+  const [messages, setMessages] = useState([]); // messages array from backend
+  const socketRef = useRef(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Mock conversation data
-  const [conversation] = useState({
-    id: conversationId,
-    user: {
-      name: "John Doe",
-      avatar: "👨",
-      online: true
-    },
-    product: {
-      title: "iPhone 13 Pro - Excellent Condition",
-      price: 799,
-      image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&h=300&fit=crop"
-    },
-    messages: [
-      {
-        id: 1,
-        sender: 'them',
-        text: "Hi! Is the iPhone still available?",
-        timestamp: "2024-01-20T10:30:00",
-        read: true
-      },
-      {
-        id: 2,
-        sender: 'me',
-        text: "Yes, it's still available! Are you interested?",
-        timestamp: "2024-01-20T10:32:00",
-        read: true
-      },
-      {
-        id: 3,
-        sender: 'them',
-        text: "Yes, I'm very interested. Can you tell me more about the condition?",
-        timestamp: "2024-01-20T10:35:00",
-        read: true
-      },
-      {
-        id: 4,
-        sender: 'me',
-        text: "It's in excellent condition. No scratches, includes original box and charger. 256GB Pacific Blue.",
-        timestamp: "2024-01-20T10:37:00",
-        read: true
-      },
-      {
-        id: 5,
-        sender: 'them',
-        text: "That sounds perfect! Can we meet tomorrow? I'm available in the afternoon.",
-        timestamp: "2024-01-20T10:40:00",
-        read: false
+  // Get chat and messages from backend
+  useEffect(() => {
+    const fetchChat = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Get chat info (with product and user info)
+        const chatRes = await chatAPI.getMyChats();
+        const foundChat = chatRes.data.find(c => c._id === conversationId);
+        if (!foundChat) {
+          setError('Chat not found.');
+          setLoading(false);
+          return;
+        }
+        setChat(foundChat);
+        // Get messages for this chat
+        const msgRes = await chatAPI.getMessages(conversationId);
+        setMessages(msgRes.data);
+      } catch (err) {
+        setError('Failed to load chat.');
+      } finally {
+        setLoading(false);
       }
-    ]
-  });
+    };
+    fetchChat();
+
+    // Setup socket.io connection
+    if (!socketRef.current) {
+      socketRef.current = io(import.meta.env.VITE_API_URL || 'http://localhost:5000');
+    }
+    const socket = socketRef.current;
+    // Join chat room
+    socket.emit('join', conversationId);
+    // Listen for new messages
+    socket.on('receiveMessage', (message) => {
+      setMessages(prev => [...prev, message]);
+    });
+    return () => {
+      socket.off('receiveMessage');
+      socket.emit('leave', conversationId);
+    };
+    // eslint-disable-next-line
+  }, [conversationId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -67,30 +66,20 @@ const Conversation = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [conversation.messages]);
+  }, [messages]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
-
+    if (!newMessage.trim() || !chat) return;
     setSending(true);
-    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // In real app, this would be sent to backend
-      const message = {
-        id: Date.now(),
-        sender: 'me',
-        text: newMessage,
-        timestamp: new Date().toISOString(),
-        read: false
-      };
-      
-      // Add to messages (in real app, this would come from backend)
-      conversation.messages.push(message);
-      
+      // Send message to backend
+      const res = await chatAPI.sendMessage({ chatId: chat._id, text: newMessage });
+      setMessages(prev => [...prev, res.data]);
+      // Emit to socket for real-time delivery
+      if (socketRef.current) {
+        socketRef.current.emit('sendMessage', { chatId: chat._id, message: res.data });
+      }
       setNewMessage('');
       toast.success('Message sent!');
     } catch (error) {
@@ -122,6 +111,39 @@ const Conversation = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading conversation...</p>
+        </div>
+      </div>
+    );
+  }
+  if (error || !chat) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">Conversation not found</h3>
+          <p className="text-gray-600 mb-6">{error || 'The conversation you are looking for does not exist.'}</p>
+          <button
+            onClick={() => navigate('/messages')}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+          >
+            Back to Messages
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Find the other user in the chat
+  const currentUserId = localStorage.getItem('userId');
+  const otherUser = chat.members.find(u => u._id !== currentUserId) || chat.members[0];
+  const product = chat.product;
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -137,33 +159,28 @@ const Conversation = () => {
               </button>
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white text-lg">
-                  {conversation.user.avatar}
+                  {/* Avatar fallback */}
+                  {otherUser.avatar || otherUser.name?.charAt(0) || '👤'}
                 </div>
                 <div>
-                  <h2 className="font-semibold text-gray-900">{conversation.user.name}</h2>
-                  <div className="flex items-center space-x-2">
-                    <div className={`w-2 h-2 rounded-full ${conversation.user.online ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                    <span className="text-sm text-gray-600">
-                      {conversation.user.online ? 'Online' : 'Offline'}
-                    </span>
-                  </div>
+                  <h2 className="font-semibold text-gray-900">{otherUser.name}</h2>
+                  {/* Online status not available unless using socket.io */}
                 </div>
               </div>
             </div>
-            
             {/* Product Info */}
             <div className="flex items-center space-x-3">
               <img
-                src={conversation.product.image}
-                alt={conversation.product.title}
+                src={product?.images?.[0] || product?.image || ''}
+                alt={product?.title}
                 className="w-12 h-12 object-cover rounded-lg"
               />
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-900 line-clamp-1">
-                  {conversation.product.title}
+                  {product?.title}
                 </p>
                 <p className="text-sm text-green-600 font-semibold">
-                  ${conversation.product.price}
+                  ${product?.price}
                 </p>
               </div>
             </div>
@@ -172,18 +189,18 @@ const Conversation = () => {
 
         {/* Messages */}
         <div className="h-96 overflow-y-auto p-6 space-y-4">
-          {conversation.messages.map((message, index) => {
-            const isMe = message.sender === 'me';
+          {messages.map((message, index) => {
+            const isMe = message.sender === currentUserId || message.sender?._id === currentUserId;
             const showDate = index === 0 || 
-              formatDate(message.timestamp) !== formatDate(conversation.messages[index - 1].timestamp);
+              formatDate(message.createdAt) !== formatDate(messages[index - 1]?.createdAt);
 
             return (
-              <div key={message.id}>
+              <div key={message._id || message.id}>
                 {/* Date Separator */}
                 {showDate && (
                   <div className="text-center my-4">
                     <span className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full">
-                      {formatDate(message.timestamp)}
+                      {formatDate(message.createdAt)}
                     </span>
                   </div>
                 )}
@@ -200,21 +217,16 @@ const Conversation = () => {
                       <div className={`flex items-center justify-between mt-1 ${
                         isMe ? 'text-blue-100' : 'text-gray-500'
                       }`}>
-                        <span className="text-xs">{formatTime(message.timestamp)}</span>
-                        {isMe && (
-                          <span className="text-xs">
-                            {message.read ? '✓✓' : '✓'}
-                          </span>
-                        )}
+                        <span className="text-xs">{formatTime(message.createdAt)}</span>
+                        {/* Read status can be added here if available */}
                       </div>
                     </div>
                   </div>
-                  
                   {/* Avatar */}
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm ${
                     isMe ? 'bg-blue-500 order-1 ml-2' : 'bg-gray-500 order-2 mr-2'
                   }`}>
-                    {isMe ? '👤' : conversation.user.avatar}
+                    {isMe ? '👤' : (otherUser.avatar || otherUser.name?.charAt(0) || '👤')}
                   </div>
                 </div>
               </div>

@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
 });
 
 API.interceptors.request.use((config) => {
@@ -15,7 +15,8 @@ API.interceptors.request.use((config) => {
 export const authAPI = {
   login: (credentials) => API.post('/auth/login', credentials),
   register: (userData) => API.post('/auth/register', userData),
-  getProfile: () => API.get('/auth/profile'),
+  getProfile: () => API.get('/users/profile'),
+  updateProfile: (data) => API.put('/auth/me', data),
 };
 
 // Products API functions
@@ -48,3 +49,15 @@ export const dashboardAPI = {
 };
 
 export default API;
+
+// Chat API functions
+export const chatAPI = {
+  // Get or create a chat between current user and another user for a product
+  getOrCreate: ({ userId, productId }) => API.post('/chats/get-or-create', { userId, productId }),
+  // Get all chats for the logged-in user
+  getMyChats: () => API.get('/chats/my'),
+  // Get all messages for a chat
+  getMessages: (chatId) => API.get(`/messages/${chatId}`),
+  // Send a message in a chat
+  sendMessage: ({ chatId, text }) => API.post(`/messages/${chatId}`, { text }),
+};

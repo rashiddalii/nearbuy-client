@@ -1,23 +1,77 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { authAPI } from '../services/api';
 
 const Profile = () => {
-  const [profile, setProfile] = useState({
-    name: "John Doe",
-    email: "john@example.com",
-    phone: "+1 (555) 123-4567",
-    location: "Downtown, City",
-    bio: "Local seller with great deals on electronics and furniture.",
-    avatar: "👨"
-  });
-
+  const [profile, setProfile] = useState(null);
+  const [stats, setStats] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState(profile);
+  const [formData, setFormData] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  const handleSave = () => {
-    setProfile(formData);
-    setIsEditing(false);
-    toast.success('Profile updated successfully!');
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setLoading(true);
+        const profileRes = await authAPI.getProfile();
+        // Extract user data from API response
+        const userData = profileRes.data.data;
+        const profileData = {
+          name: userData.name || '',
+          email: userData.email || '',
+          phone: userData.phone || '',
+          location: userData.location || '',
+          bio: userData.bio || '',
+          avatar: userData.avatar || '👤',
+        };
+        setProfile(profileData);
+        setFormData(profileData);
+        setStats({
+          listings: 0,
+          sold: 0,
+          rating: 0,
+          reviews: 0
+        });
+      } catch (error) {
+        if (error.response && error.response.status === 401) {
+          toast.error("Session expired. Please log in again.");
+          localStorage.removeItem("token");
+          window.location.href = "/login";
+        } else {
+          toast.error("Failed to load profile data.");
+        }
+        console.error("Error fetching profile:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      // Only send fields that have values to avoid overwriting with empty strings
+      const updateData = {};
+      Object.keys(formData).forEach(key => {
+        if (formData[key] !== null && formData[key] !== undefined && formData[key] !== '') {
+          updateData[key] = formData[key];
+        }
+      });
+
+      // Use authAPI for consistent baseURL and token handling
+      const res = await authAPI.updateProfile(updateData);
+      const updatedProfile = {
+        ...profile,
+        ...res.data
+      };
+      setProfile(updatedProfile);
+      setFormData(updatedProfile);
+      setIsEditing(false);
+      toast.success("Profile updated successfully!");
+    } catch (error) {
+      toast.error("Failed to update profile.");
+      console.error("Error updating profile:", error);
+    }
   };
 
   const handleCancel = () => {
@@ -25,12 +79,28 @@ const Profile = () => {
     setIsEditing(false);
   };
 
-  const stats = {
-    listings: 5,
-    sold: 12,
-    rating: 4.8,
-    reviews: 24
-  };
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile || !stats) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <p className="text-gray-600">Failed to load profile data. Please try again.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -75,12 +145,12 @@ const Profile = () => {
                 {isEditing ? (
                   <input
                     type="text"
-                    value={formData.name}
+                    value={formData.name || ''}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 ) : (
-                  <p className="text-gray-900">{profile.name}</p>
+                  <p className="text-gray-900">{profile.name || 'Not provided'}</p>
                 )}
               </div>
 
@@ -89,12 +159,12 @@ const Profile = () => {
                 {isEditing ? (
                   <input
                     type="email"
-                    value={formData.email}
+                    value={formData.email || ''}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 ) : (
-                  <p className="text-gray-900">{profile.email}</p>
+                  <p className="text-gray-900">{profile.email || 'Not provided'}</p>
                 )}
               </div>
 
@@ -103,12 +173,13 @@ const Profile = () => {
                 {isEditing ? (
                   <input
                     type="tel"
-                    value={formData.phone}
+                    value={formData.phone || ''}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    placeholder="Enter your phone number"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 ) : (
-                  <p className="text-gray-900">{profile.phone}</p>
+                  <p className="text-gray-900">{profile.phone || <span className="text-gray-500 italic">Not provided - Click edit to add</span>}</p>
                 )}
               </div>
 
@@ -117,12 +188,13 @@ const Profile = () => {
                 {isEditing ? (
                   <input
                     type="text"
-                    value={formData.location}
+                    value={formData.location || ''}
                     onChange={(e) => setFormData({...formData, location: e.target.value})}
+                    placeholder="Enter your location (e.g., City, State)"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 ) : (
-                  <p className="text-gray-900">{profile.location}</p>
+                  <p className="text-gray-900">{profile.location || <span className="text-gray-500 italic">Not provided - Click edit to add</span>}</p>
                 )}
               </div>
 
@@ -130,13 +202,14 @@ const Profile = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
                 {isEditing ? (
                   <textarea
-                    value={formData.bio}
+                    value={formData.bio || ''}
                     onChange={(e) => setFormData({...formData, bio: e.target.value})}
                     rows={3}
+                    placeholder="Tell others about yourself, your selling experience, or what you specialize in..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 ) : (
-                  <p className="text-gray-900">{profile.bio}</p>
+                  <p className="text-gray-900">{profile.bio || <span className="text-gray-500 italic">No bio provided - Click edit to add a description about yourself</span>}</p>
                 )}
               </div>
             </div>
@@ -163,18 +236,18 @@ const Profile = () => {
           {/* Avatar & Stats */}
           <div className="bg-white rounded-lg shadow-sm p-6 text-center">
             <div className="w-24 h-24 bg-blue-500 rounded-full flex items-center justify-center text-white text-4xl mx-auto mb-4">
-              {profile.avatar}
+              {profile.avatar || '👤'}
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">{profile.name}</h3>
-            <p className="text-gray-600 mb-4">{profile.location}</p>
+            <p className="text-gray-600 mb-4">{profile.location || 'Location not set'}</p>
             
             <div className="grid grid-cols-2 gap-4 text-center">
               <div>
-                <div className="text-2xl font-bold text-gray-900">{stats.listings}</div>
+                <div className="text-2xl font-bold text-gray-900">{stats.listings || 0}</div>
                 <div className="text-sm text-gray-600">Active Listings</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-gray-900">{stats.sold}</div>
+                <div className="text-2xl font-bold text-gray-900">{stats.sold || 0}</div>
                 <div className="text-sm text-gray-600">Items Sold</div>
               </div>
             </div>
@@ -184,8 +257,10 @@ const Profile = () => {
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">Seller Rating</h3>
             <div className="text-center">
-              <div className="text-3xl font-bold text-yellow-600 mb-2">⭐ {stats.rating}</div>
-              <p className="text-gray-600 text-sm">{stats.reviews} reviews</p>
+              <div className="text-3xl font-bold text-yellow-600 mb-2">
+                ⭐ {stats.rating ? stats.rating.toFixed(1) : 'N/A'}
+              </div>
+              <p className="text-gray-600 text-sm">{stats.reviews || 0} reviews</p>
             </div>
           </div>
 
@@ -210,4 +285,4 @@ const Profile = () => {
   );
 };
 
-export default Profile; 
+export default Profile;
