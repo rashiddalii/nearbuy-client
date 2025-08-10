@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import ApiStatus from './ApiStatus';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { chatAPI } from '../services/api';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const token = localStorage.getItem('token');
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -17,6 +19,26 @@ const Navbar = () => {
   const isActive = (path) => {
     return location.pathname === path;
   };
+
+  // Fetch unread message count
+  useEffect(() => {
+    if (token) {
+      const fetchUnreadCount = async () => {
+        try {
+          const res = await chatAPI.getUnreadCount();
+          setUnreadCount(res.data.unreadCount);
+        } catch (err) {
+          console.error('Failed to fetch unread count:', err);
+        }
+      };
+      
+      fetchUnreadCount();
+      
+      // Refresh unread count every 30 seconds
+      const interval = setInterval(fetchUnreadCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [token]);
 
   return (
     <nav className="bg-white shadow-lg border-b">
@@ -58,13 +80,18 @@ const Navbar = () => {
                 </Link>
                 <Link 
                   to="/messages" 
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors relative ${
                     isActive('/messages') 
                       ? 'text-blue-600 border-b-2 border-blue-600' 
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
                   Messages
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
                 </Link>
                 <Link 
                   to="/profile" 

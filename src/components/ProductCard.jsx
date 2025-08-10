@@ -13,7 +13,9 @@ const ProductCard = ({ product }) => {
     seller,
     createdAt,
     views = 0,
-    saves = 0
+    saves = 0,
+    averageRating = 0,
+    numReviews = 0
   } = product;
 
   // Get first image or use placeholder
@@ -75,6 +77,22 @@ const ProductCard = ({ product }) => {
             by {sellerName}
           </div>
         </div>
+
+        {/* Rating */}
+        {numReviews > 0 && (
+          <div className="flex items-center space-x-2 mb-3">
+            <div className="flex space-x-1">
+              {Array.from({ length: 5 }, (_, i) => (
+                <span key={i} className={i < averageRating ? 'text-yellow-400' : 'text-gray-300'}>
+                  ★
+                </span>
+              ))}
+            </div>
+            <span className="text-sm text-gray-600">
+              ({numReviews})
+            </span>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="flex items-center justify-between text-xs text-gray-500 mb-4">

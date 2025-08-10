@@ -60,4 +60,26 @@ export const chatAPI = {
   getMessages: (chatId) => API.get(`/messages/${chatId}`),
   // Send a message in a chat
   sendMessage: ({ chatId, text }) => API.post(`/messages/${chatId}`, { text }),
+  // Mark messages as read
+  markAsRead: (chatId) => API.patch(`/messages/${chatId}/read`),
+  // Get unread message count
+  getUnreadCount: () => API.get('/messages/unread/count'),
+};
+
+// Reviews API functions
+export const reviewsAPI = {
+  // Get all reviews for a product
+  getProductReviews: (productId, params = {}) => API.get(`/reviews/product/${productId}`, { params }),
+  
+  // Create a new review
+  create: (reviewData) => API.post('/reviews', reviewData),
+  
+  // Update a review
+  update: (id, reviewData) => API.put(`/reviews/${id}`, reviewData),
+  
+  // Delete a review
+  delete: (id) => API.delete(`/reviews/${id}`),
+  
+  // Mark review as helpful/unhelpful
+  markHelpful: (id, helpful) => API.post(`/reviews/${id}/helpful`, { helpful }),
 };

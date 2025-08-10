@@ -6,6 +6,7 @@ const Messages = () => {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const fetchChats = async () => {
@@ -14,6 +15,10 @@ const Messages = () => {
       try {
         const res = await chatAPI.getMyChats();
         setConversations(res.data);
+        
+        // Get unread message count
+        const unreadRes = await chatAPI.getUnreadCount();
+        setUnreadCount(unreadRes.data.unreadCount);
       } catch (err) {
         setError('Failed to load messages.');
       } finally {
@@ -26,8 +31,17 @@ const Messages = () => {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Messages</h1>
-        <p className="text-gray-600">Communicate with buyers and sellers</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Messages</h1>
+            <p className="text-gray-600">Communicate with buyers and sellers</p>
+          </div>
+          {unreadCount > 0 && (
+            <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+              {unreadCount} unread
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm">
@@ -44,17 +58,28 @@ const Messages = () => {
           </div>
         ) : conversations.length > 0 ? (
           <div className="divide-y divide-gray-200">
-            {conversations.map((conversation) => {
-              // Find the other user
-              const currentUserId = localStorage.getItem('userId');
-              const otherUser = conversation.members.find(u => u._id !== currentUserId) || conversation.members[0];
-              // Last message
+                        {conversations.map((conversation) => {
+              // Use the otherUser field provided by the backend
+              const otherUser = conversation.otherUser;
+              
+              // If no other user found (shouldn't happen), skip this conversation
+              if (!otherUser) {
+                console.warn('No other user found in conversation:', conversation);
+                return null;
+              }
+              
+              // Get last message and unread count for this conversation
               const lastMessage = conversation.lastMessage || (conversation.messages && conversation.messages.length > 0 ? conversation.messages[conversation.messages.length - 1].text : '');
-              // Timestamp
               const lastTimestamp = conversation.updatedAt || conversation.createdAt;
               const timeAgo = lastTimestamp ? new Date(lastTimestamp).toLocaleString() : '';
-              // Unread (for now, always false unless you add logic)
-              const unread = false;
+              
+                             // Calculate unread messages for this conversation
+               const currentUserId = localStorage.getItem('userId');
+               const unreadMessages = conversation.messages ? conversation.messages.filter(msg => 
+                 !msg.read && msg.sender !== currentUserId && msg.sender?._id?.toString() !== currentUserId
+               ).length : 0;
+              
+              const hasUnread = unreadMessages > 0;
               return (
                 <Link
                   key={conversation._id}
@@ -67,14 +92,25 @@ const Messages = () => {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <h3 className="font-semibold text-gray-900">{otherUser.name}</h3>
+                        <h3 className={`font-semibold ${hasUnread ? 'text-gray-900' : 'text-gray-700'}`}>
+                          {otherUser.name}
+                        </h3>
                         <span className="text-sm text-gray-500">{timeAgo}</span>
                       </div>
-                      <p className="text-gray-600 text-sm">{lastMessage}</p>
+                      <div className="flex items-center justify-between">
+                        <p className={`text-sm ${hasUnread ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
+                          {lastMessage}
+                        </p>
+                        {hasUnread && (
+                          <div className="flex items-center space-x-2">
+                            <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                            <span className="text-xs text-blue-600 font-medium">
+                              {unreadMessages}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    {unread && (
-                      <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
-                    )}
                   </div>
                 </Link>
               );

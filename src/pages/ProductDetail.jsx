@@ -1,15 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { productsAPI, chatAPI } from '../services/api';
+// import ReviewCard from '../components/ReviewCard';
+// import ReviewForm from '../components/ReviewForm';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedImage, setSelectedImage] = useState(0);
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // const [reviews, setReviews] = useState([]);
+  // const [reviewsLoading, setReviewsLoading] = useState(false);
+  // const [showReviewForm, setShowReviewForm] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   // Fetch product data
   const fetchProduct = async () => {
@@ -27,12 +34,74 @@ const ProductDetail = () => {
     }
   };
 
+  // Fetch reviews for the product
+  // const fetchReviews = async () => {
+  //   try {
+  //     setReviewsLoading(true);
+  //     const response = await reviewsAPI.getProductReviews(id);
+  //     setReviews(response.data.reviews);
+  //   } catch (err) {
+  //     console.error('Error fetching reviews:', err);
+  //   } finally {
+  //     setReviewsLoading(false);
+  //   }
+  // };
+
+  // Check if current user has already reviewed this product
+  // const hasUserReviewed = () => {
+  //   if (!currentUser || !reviews.length) return false;
+  //   return reviews.some(review => 
+  //     review.reviewer._id === currentUser._id || review.reviewer === currentUser._id
+  //   );
+  // };
+
   useEffect(() => {
     fetchProduct();
+    // fetchReviews(); // Temporarily disabled
+    // Get current user info
+    const userId = localStorage.getItem('userId');
+    const userName = localStorage.getItem('userName');
+    const token = localStorage.getItem('token');
+    
+    console.log('=== USER STATE DEBUG ===');
+    console.log('userId from localStorage:', userId);
+    console.log('userName from localStorage:', userName);
+    console.log('token from localStorage:', token);
+    console.log('========================');
+    
+    if (userId && userName) {
+      setCurrentUser({ _id: userId, name: userName });
+    }
   }, [id]);
+
+  // Debug: Log user comparison info
+  useEffect(() => {
+    if (product && currentUser) {
+      console.log('=== DEBUG INFO ===');
+      console.log('Current User ID:', currentUser._id);
+      console.log('Product Seller ID:', product.seller._id);
+      console.log('Product Seller ID (string):', product.seller._id.toString());
+      console.log('Are they the same?', currentUser._id === product.seller._id.toString());
+      console.log('Current User:', currentUser);
+      console.log('Product Seller:', product.seller);
+      console.log('==================');
+    }
+  }, [product, currentUser]);
+
+
 
   const handleContactSeller = async () => {
     if (product && product.seller && product.seller._id && product._id) {
+      // Check if user is trying to contact themselves
+      const currentUserId = localStorage.getItem('userId');
+      console.log('Contact Seller - Current User ID:', currentUserId);
+      console.log('Contact Seller - Product Seller ID:', product.seller._id.toString());
+      
+      if (currentUserId === product.seller._id.toString()) {
+        toast.error('You cannot contact yourself.');
+        return;
+      }
+      
       try {
         // Call backend to get or create chat
         const res = await chatAPI.getOrCreate({ userId: product.seller._id, productId: product._id });
@@ -43,7 +112,12 @@ const ProductDetail = () => {
           toast.error('Failed to open chat.');
         }
       } catch (err) {
-        toast.error('Failed to open chat.');
+        console.error('Chat creation error:', err);
+        if (err.response?.data?.message) {
+          toast.error(err.response.data.message);
+        } else {
+          toast.error('Failed to open chat.');
+        }
       }
     } else {
       toast.error('Seller information not available.');
@@ -66,6 +140,21 @@ const ProductDetail = () => {
       toast.success('Link copied to clipboard!');
     }
   };
+
+  // const handleReviewAdded = (newReview) => {
+  //   setReviews(prev => [newReview, ...prev]);
+  //   setShowReviewForm(false);
+  // };
+
+  // const handleReviewUpdated = (updatedReview) => {
+  //   setReviews(prev => prev.map(review => 
+  //     review._id === updatedReview._id ? updatedReview : review
+  //   ));
+  // };
+
+  // const handleReviewDeleted = (reviewId) => {
+  //   setReviews(prev => prev.filter(review => review._id !== reviewId));
+  // };
 
   // Loading state
   if (loading) {
@@ -180,22 +269,62 @@ const ProductDetail = () => {
                 <div>
                   <h3 className="font-semibold text-gray-900">{product.seller?.name || 'Unknown Seller'}</h3>
                   <div className="flex items-center space-x-2">
-                    <span className="text-yellow-600">⭐ 4.8</span>
-                    <span className="text-gray-600 text-sm">(24 reviews)</span>
+                    <div className="flex space-x-1">
+                      {Array.from({ length: 5 }, (_, i) => (
+                        <span key={i} className={i < (product.averageRating || 0) ? 'text-yellow-600' : 'text-gray-300'}>
+                          ★
+                        </span>
+                      ))}
+                    </div>
+                    <span className="text-gray-600 text-sm">
+                      ({product.numReviews || 0} reviews)
+                    </span>
                   </div>
                 </div>
               </div>
-              <p className="text-sm text-gray-600">Member since 2023</p>
+              <p className="text-sm text-gray-600">
+                Member since {new Date(product.seller?.createdAt || product.createdAt).getFullYear()}
+              </p>
             </div>
 
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              <button
-                onClick={handleContactSeller}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-medium transition-colors"
-              >
-                💬 Contact Seller
-              </button>
+                         {/* Action Buttons */}
+             <div className="space-y-3">
+               {/* Debug info */}
+               <div className="text-xs text-gray-500 mb-2">
+                 Debug: currentUser={currentUser ? 'YES' : 'NO'}, 
+                 seller={product.seller._id.toString()}, 
+                 user={currentUser?._id}
+               </div>
+               
+               {/* Show Contact Seller button if user is logged in and not the seller */}
+               {currentUser && currentUser._id !== product.seller._id.toString() && (
+                 <button
+                   onClick={handleContactSeller}
+                   className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-medium transition-colors"
+                 >
+                   💬 Contact Seller
+                 </button>
+               )}
+               {/* Show Edit button if user is the seller */}
+               {currentUser && currentUser._id === product.seller._id.toString() && (
+                 <Link
+                   to={`/edit-listing/${product._id}`}
+                   className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-medium transition-colors text-center block"
+                 >
+                   ✏️ Edit Listing
+                 </Link>
+               )}
+               {/* Show Contact Seller button if user is not logged in */}
+               {!currentUser && (
+                 <Link
+                   to="/login"
+                   state={{ from: location }}
+                   className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-medium transition-colors text-center block"
+                 >
+                   💬 Contact Seller
+                 </Link>
+               )}
+
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={handleSaveItem}
@@ -241,6 +370,15 @@ const ProductDetail = () => {
               <span className="ml-2 text-gray-900">{product.location}</span>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Reviews Section - Temporarily Disabled */}
+      <div className="mt-8">
+        <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+          <div className="text-6xl mb-4">⭐</div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">Reviews Coming Soon!</h3>
+          <p className="text-gray-600 mb-6">The review system is being updated and will be back soon.</p>
         </div>
       </div>
 

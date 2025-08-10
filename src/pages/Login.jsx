@@ -1,11 +1,12 @@
 import { useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import { HiEye, HiEyeOff } from "react-icons/hi";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -26,9 +27,20 @@ export default function LoginPage() {
     try {
       const res = await axios.post("http://localhost:5000/api/auth/login", form);
       if (res.data?.token) {
+        console.log('=== LOGIN DEBUG ===');
+        console.log('Login response:', res.data);
+        console.log('User ID being stored:', res.data.user._id);
+        console.log('User name being stored:', res.data.user.name);
+        console.log('===================');
+        
         localStorage.setItem("token", res.data.token);
+        localStorage.setItem("userId", res.data.user._id);
+        localStorage.setItem("userName", res.data.user.name);
         toast.success("Logged in successfully!");
-        navigate("/dashboard");
+        
+        // Redirect to the page they were trying to access, or dashboard as fallback
+        const from = location.state?.from?.pathname || "/dashboard";
+        navigate(from, { replace: true });
       }
     } catch (err) {
       setError(err?.response?.data?.message || "Invalid credentials.");

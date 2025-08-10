@@ -34,6 +34,9 @@ const Conversation = () => {
         // Get messages for this chat
         const msgRes = await chatAPI.getMessages(conversationId);
         setMessages(msgRes.data);
+        
+        // Mark messages as read when opening conversation
+        await chatAPI.markAsRead(conversationId);
       } catch (err) {
         setError('Failed to load chat.');
       } finally {
@@ -52,6 +55,10 @@ const Conversation = () => {
     // Listen for new messages
     socket.on('receiveMessage', (message) => {
       setMessages(prev => [...prev, message]);
+             // Mark new message as read if it's from other user
+       if (message.sender !== currentUserId && message.sender?._id?.toString() !== currentUserId) {
+         chatAPI.markAsRead(conversationId);
+       }
     });
     return () => {
       socket.off('receiveMessage');
@@ -67,6 +74,23 @@ const Conversation = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Mark messages as read when user scrolls to view them
+  useEffect(() => {
+    const messagesContainer = document.querySelector('.messages-container');
+    if (messagesContainer) {
+      const handleScroll = () => {
+        const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
+        // If user is near the bottom (within 100px), mark messages as read
+        if (scrollHeight - scrollTop - clientHeight < 100) {
+          markMessagesAsRead();
+        }
+      };
+
+      messagesContainer.addEventListener('scroll', handleScroll);
+      return () => messagesContainer.removeEventListener('scroll', handleScroll);
+    }
+  }, [messages, chat]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -86,6 +110,20 @@ const Conversation = () => {
       toast.error('Failed to send message. Please try again.');
     } finally {
       setSending(false);
+    }
+  };
+
+  // Function to mark messages as read
+  const markMessagesAsRead = async () => {
+    try {
+      await chatAPI.markAsRead(chat._id);
+             // Update messages to show as read
+       setMessages(prev => prev.map(msg => ({
+         ...msg,
+         read: msg.sender === currentUserId || msg.sender?._id?.toString() === currentUserId ? msg.read : true
+       })));
+    } catch (error) {
+      console.error('Failed to mark messages as read:', error);
     }
   };
 
@@ -139,9 +177,29 @@ const Conversation = () => {
     );
   }
 
-  // Find the other user in the chat
+  // Find the other user in the chat - properly identify who is NOT the current user
   const currentUserId = localStorage.getItem('userId');
-  const otherUser = chat.members.find(u => u._id !== currentUserId) || chat.members[0];
+  const otherUser = chat.members.find(u => u._id.toString() !== currentUserId);
+  
+  // If no other user found (shouldn't happen), show error
+  if (!otherUser) {
+    console.warn('No other user found in chat:', chat);
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">Invalid conversation</h3>
+          <p className="text-gray-600 mb-6">This conversation appears to be invalid.</p>
+          <button
+            onClick={() => navigate('/messages')}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+          >
+            Back to Messages
+          </button>
+        </div>
+      </div>
+    );
+  }
   const product = chat.product;
 
   return (
@@ -188,9 +246,9 @@ const Conversation = () => {
         </div>
 
         {/* Messages */}
-        <div className="h-96 overflow-y-auto p-6 space-y-4">
-          {messages.map((message, index) => {
-            const isMe = message.sender === currentUserId || message.sender?._id === currentUserId;
+        <div className="messages-container h-96 overflow-y-auto p-6 space-y-4">
+                     {messages.map((message, index) => {
+             const isMe = message.sender === currentUserId || message.sender?._id?.toString() === currentUserId;
             const showDate = index === 0 || 
               formatDate(message.createdAt) !== formatDate(messages[index - 1]?.createdAt);
 
@@ -207,7 +265,15 @@ const Conversation = () => {
 
                 {/* Message */}
                 <div className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-xs lg:max-w-md ${isMe ? 'order-2' : 'order-1'}`}>
+                  {/* Avatar for other user */}
+                  {!isMe && (
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm bg-gray-500 mr-2 flex-shrink-0">
+                      {otherUser.avatar || otherUser.name?.charAt(0) || '👤'}
+                    </div>
+                  )}
+                  
+                  {/* Message Bubble */}
+                  <div className={`max-w-xs lg:max-w-md ${isMe ? 'ml-auto' : ''}`}>
                     <div className={`px-4 py-2 rounded-lg ${
                       isMe 
                         ? 'bg-blue-600 text-white' 
@@ -218,16 +284,22 @@ const Conversation = () => {
                         isMe ? 'text-blue-100' : 'text-gray-500'
                       }`}>
                         <span className="text-xs">{formatTime(message.createdAt)}</span>
-                        {/* Read status can be added here if available */}
+                        {/* Read status for my messages */}
+                        {isMe && (
+                          <span className="text-xs ml-2">
+                            {message.read ? '✓✓' : '✓'}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
-                  {/* Avatar */}
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm ${
-                    isMe ? 'bg-blue-500 order-1 ml-2' : 'bg-gray-500 order-2 mr-2'
-                  }`}>
-                    {isMe ? '👤' : (otherUser.avatar || otherUser.name?.charAt(0) || '👤')}
-                  </div>
+                  
+                  {/* Avatar for current user */}
+                  {isMe && (
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm bg-blue-500 ml-2 flex-shrink-0">
+                      👤
+                    </div>
+                  )}
                 </div>
               </div>
             );
