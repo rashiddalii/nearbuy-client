@@ -3,6 +3,7 @@ import ApiStatus from './ApiStatus';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { chatAPI } from '../services/api';
+import socketService from '../services/socket';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -12,6 +13,12 @@ const Navbar = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userName');
+    
+    // Disconnect socket on logout
+    socketService.disconnect();
+    
     toast.success('Logged out successfully!');
     navigate('/login');
   };
@@ -20,7 +27,7 @@ const Navbar = () => {
     return location.pathname === path;
   };
 
-  // Fetch unread message count
+  // Fetch unread message count and setup real-time updates
   useEffect(() => {
     if (token) {
       const fetchUnreadCount = async () => {
@@ -34,9 +41,21 @@ const Navbar = () => {
       
       fetchUnreadCount();
       
-      // Refresh unread count every 30 seconds
+      // Setup real-time updates for unread count
+      const socket = socketService.connect();
+      socket.on('receiveMessage', (message) => {
+        console.log('New message received in Navbar:', message);
+        // Update unread count immediately when new message arrives
+        fetchUnreadCount();
+      });
+      
+      // Also refresh unread count every 30 seconds as backup
       const interval = setInterval(fetchUnreadCount, 30000);
-      return () => clearInterval(interval);
+      
+      return () => {
+        socket.off('receiveMessage');
+        clearInterval(interval);
+      };
     }
   }, [token]);
 

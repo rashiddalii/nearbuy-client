@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { chatAPI } from '../services/api';
-import { io } from 'socket.io-client';
+import socketService from '../services/socket';
 
 const Conversation = () => {
   const { conversationId } = useParams();
@@ -12,10 +12,9 @@ const Conversation = () => {
   const [sending, setSending] = useState(false);
   const [chat, setChat] = useState(null); // chat object from backend
   const [messages, setMessages] = useState([]); // messages array from backend
-  const socketRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  const currentUserId = localStorage.getItem('userId'); // Declared here for use throughout component
   // Get chat and messages from backend
   useEffect(() => {
     const fetchChat = async () => {
@@ -46,26 +45,68 @@ const Conversation = () => {
     fetchChat();
 
     // Setup socket.io connection
-    if (!socketRef.current) {
-      socketRef.current = io(import.meta.env.VITE_API_URL || 'http://localhost:5000');
-    }
-    const socket = socketRef.current;
-    // Join chat room
-    socket.emit('join', conversationId);
-    // Listen for new messages
-    socket.on('receiveMessage', (message) => {
-      setMessages(prev => [...prev, message]);
-             // Mark new message as read if it's from other user
-       if (message.sender !== currentUserId && message.sender?._id?.toString() !== currentUserId) {
-         chatAPI.markAsRead(conversationId);
-       }
-    });
+    const setupSocket = async () => {
+      try {
+        const socket = socketService.connect();
+        
+        // Wait for socket to be ready
+        await socketService.waitForConnection();
+        
+        // Join chat room
+        socket.emit('join', conversationId);
+        console.log('Joined chat room:', conversationId);
+        
+        // Listen for new messages
+        socket.on('receiveMessage', (message) => {
+          console.log('Received new message via socket:', message);
+          setMessages(prev => {
+            // Check if message already exists to avoid duplicates
+            const messageExists = prev.some(msg => msg._id === message._id);
+            if (messageExists) {
+              return prev;
+            }
+            return [...prev, message];
+          });
+          
+          // Mark new message as read if it's from other user
+          if (message.sender !== currentUserId && message.sender?._id?.toString() !== currentUserId) {
+            chatAPI.markAsRead(conversationId);
+          }
+        });
+        
+        // Handle socket connection events (for debugging)
+        socket.on('connect', () => {
+          console.log('Socket connected in Conversation');
+        });
+        
+        socket.on('disconnect', (reason) => {
+          console.log('Socket disconnected in Conversation:', reason);
+        });
+        
+        socket.on('connect_error', (error) => {
+          console.error('Socket connection error in Conversation:', error);
+        });
+        
+      } catch (error) {
+        console.error('Failed to setup socket connection:', error);
+        // Continue without real-time updates if socket fails
+      }
+    };
+    
+    setupSocket();
+    
     return () => {
-      socket.off('receiveMessage');
-      socket.emit('leave', conversationId);
+      const socket = socketService.getSocket();
+      if (socket) {
+        socket.off('receiveMessage');
+        socket.off('connect');
+        socket.off('disconnect');
+        socket.off('connect_error');
+        socket.emit('leave', conversationId);
+      }
     };
     // eslint-disable-next-line
-  }, [conversationId]);
+  }, [conversationId, currentUserId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -99,14 +140,22 @@ const Conversation = () => {
     try {
       // Send message to backend
       const res = await chatAPI.sendMessage({ chatId: chat._id, text: newMessage });
-      setMessages(prev => [...prev, res.data]);
-      // Emit to socket for real-time delivery
-      if (socketRef.current) {
-        socketRef.current.emit('sendMessage', { chatId: chat._id, message: res.data });
+      const newMessageData = res.data;
+      
+      // Add message to local state immediately
+      setMessages(prev => [...prev, newMessageData]);
+      
+      // Emit to socket for real-time delivery to other users
+      const socket = socketService.getSocket();
+      if (socket && socketService.isSocketConnected()) {
+        console.log('Emitting message via socket:', { chatId: chat._id, message: newMessageData });
+        socket.emit('sendMessage', { chatId: chat._id, message: newMessageData });
       }
+      
       setNewMessage('');
       toast.success('Message sent!');
     } catch (error) {
+      console.error('Failed to send message:', error);
       toast.error('Failed to send message. Please try again.');
     } finally {
       setSending(false);
@@ -178,7 +227,6 @@ const Conversation = () => {
   }
 
   // Find the other user in the chat - properly identify who is NOT the current user
-  const currentUserId = localStorage.getItem('userId');
   const otherUser = chat.members.find(u => u._id.toString() !== currentUserId);
   
   // If no other user found (shouldn't happen), show error

@@ -1,4 +1,5 @@
 import { Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
 import RegisterPage from "./pages/Register";
 import LoginPage from "./pages/Login";
 import DashboardPage from "./pages/Dashboard";
@@ -15,11 +16,20 @@ import ProfilePage from "./pages/Profile";
 import PrivateRoute from "./components/PrivateRoute";
 import PublicRoute from "./components/PublicRoute";
 import Navbar from "./components/Navbar";
+import socketService from "./services/socket";
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 export default function App() {
+  // Initialize socket connection when app starts
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      socketService.connect();
+    }
+  }, []);
+
   return (
     <>
       <Navbar />

@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import { HiEye, HiEyeOff } from "react-icons/hi";
+import socketService from "../services/socket";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -27,15 +28,13 @@ export default function LoginPage() {
     try {
       const res = await axios.post("http://localhost:5000/api/auth/login", form);
       if (res.data?.token) {
-        console.log('=== LOGIN DEBUG ===');
-        console.log('Login response:', res.data);
-        console.log('User ID being stored:', res.data.user._id);
-        console.log('User name being stored:', res.data.user.name);
-        console.log('===================');
-        
         localStorage.setItem("token", res.data.token);
         localStorage.setItem("userId", res.data.user._id);
         localStorage.setItem("userName", res.data.user.name);
+        
+        // Initialize socket connection after successful login
+        socketService.connect();
+        
         toast.success("Logged in successfully!");
         
         // Redirect to the page they were trying to access, or dashboard as fallback

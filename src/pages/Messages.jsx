@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { chatAPI } from '../services/api';
+import socketService from '../services/socket';
 
 const Messages = () => {
   const [conversations, setConversations] = useState([]);
@@ -26,6 +27,20 @@ const Messages = () => {
       }
     };
     fetchChats();
+
+    // Setup real-time updates
+    const socket = socketService.connect();
+    
+    // Listen for new messages to update conversations list
+    socket.on('receiveMessage', (message) => {
+      console.log('New message received in Messages page:', message);
+      // Refresh conversations to show updated last message and unread count
+      fetchChats();
+    });
+
+    return () => {
+      socket.off('receiveMessage');
+    };
   }, []);
 
   return (

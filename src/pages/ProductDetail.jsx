@@ -61,32 +61,13 @@ const ProductDetail = () => {
     // Get current user info
     const userId = localStorage.getItem('userId');
     const userName = localStorage.getItem('userName');
-    const token = localStorage.getItem('token');
-    
-    console.log('=== USER STATE DEBUG ===');
-    console.log('userId from localStorage:', userId);
-    console.log('userName from localStorage:', userName);
-    console.log('token from localStorage:', token);
-    console.log('========================');
     
     if (userId && userName) {
       setCurrentUser({ _id: userId, name: userName });
     }
   }, [id]);
 
-  // Debug: Log user comparison info
-  useEffect(() => {
-    if (product && currentUser) {
-      console.log('=== DEBUG INFO ===');
-      console.log('Current User ID:', currentUser._id);
-      console.log('Product Seller ID:', product.seller._id);
-      console.log('Product Seller ID (string):', product.seller._id.toString());
-      console.log('Are they the same?', currentUser._id === product.seller._id.toString());
-      console.log('Current User:', currentUser);
-      console.log('Product Seller:', product.seller);
-      console.log('==================');
-    }
-  }, [product, currentUser]);
+
 
 
 
@@ -94,8 +75,6 @@ const ProductDetail = () => {
     if (product && product.seller && product.seller._id && product._id) {
       // Check if user is trying to contact themselves
       const currentUserId = localStorage.getItem('userId');
-      console.log('Contact Seller - Current User ID:', currentUserId);
-      console.log('Contact Seller - Product Seller ID:', product.seller._id.toString());
       
       if (currentUserId === product.seller._id.toString()) {
         toast.error('You cannot contact yourself.');
@@ -289,13 +268,6 @@ const ProductDetail = () => {
 
                          {/* Action Buttons */}
              <div className="space-y-3">
-               {/* Debug info */}
-               <div className="text-xs text-gray-500 mb-2">
-                 Debug: currentUser={currentUser ? 'YES' : 'NO'}, 
-                 seller={product.seller._id.toString()}, 
-                 user={currentUser?._id}
-               </div>
-               
                {/* Show Contact Seller button if user is logged in and not the seller */}
                {currentUser && currentUser._id !== product.seller._id.toString() && (
                  <button
