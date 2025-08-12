@@ -48,12 +48,20 @@ const Navbar = () => {
         // Update unread count immediately when new message arrives
         fetchUnreadCount();
       });
+
+      // Listen for read status updates
+      socket.on('messagesRead', ({ chatId, messageIds }) => {
+        console.log('Messages marked as read in Navbar:', messageIds);
+        // Update unread count when messages are read
+        fetchUnreadCount();
+      });
       
       // Also refresh unread count every 30 seconds as backup
       const interval = setInterval(fetchUnreadCount, 30000);
       
       return () => {
         socket.off('receiveMessage');
+        socket.off('messagesRead');
         clearInterval(interval);
       };
     }

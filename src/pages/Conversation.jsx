@@ -70,8 +70,17 @@ const Conversation = () => {
           
           // Mark new message as read if it's from other user
           if (message.sender !== currentUserId && message.sender?._id?.toString() !== currentUserId) {
-            chatAPI.markAsRead(conversationId);
+            markMessagesAsRead();
           }
+        });
+
+        // Listen for read status updates
+        socket.on('messagesRead', ({ chatId, messageIds }) => {
+          console.log('Messages marked as read via socket:', messageIds);
+          setMessages(prev => prev.map(msg => ({
+            ...msg,
+            read: messageIds.includes(msg._id) ? true : msg.read
+          })));
         });
         
         // Handle socket connection events (for debugging)
@@ -99,6 +108,7 @@ const Conversation = () => {
       const socket = socketService.getSocket();
       if (socket) {
         socket.off('receiveMessage');
+        socket.off('messagesRead');
         socket.off('connect');
         socket.off('disconnect');
         socket.off('connect_error');
@@ -165,12 +175,23 @@ const Conversation = () => {
   // Function to mark messages as read
   const markMessagesAsRead = async () => {
     try {
-      await chatAPI.markAsRead(chat._id);
-             // Update messages to show as read
-       setMessages(prev => prev.map(msg => ({
-         ...msg,
-         read: msg.sender === currentUserId || msg.sender?._id?.toString() === currentUserId ? msg.read : true
-       })));
+      const res = await chatAPI.markAsRead(chat._id);
+      
+      // Get the message IDs that were marked as read
+      const messageIds = res.data?.messageIds || [];
+      
+      // Update messages to show as read
+      setMessages(prev => prev.map(msg => ({
+        ...msg,
+        read: msg.sender === currentUserId || msg.sender?._id?.toString() === currentUserId ? msg.read : true
+      })));
+
+      // Emit read status to other users via socket
+      const socket = socketService.getSocket();
+      if (socket && socketService.isSocketConnected() && messageIds.length > 0) {
+        console.log('Emitting read status via socket:', { chatId: chat._id, messageIds });
+        socket.emit('markAsRead', { chatId: chat._id, messageIds });
+      }
     } catch (error) {
       console.error('Failed to mark messages as read:', error);
     }

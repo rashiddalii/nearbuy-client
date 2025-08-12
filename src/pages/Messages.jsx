@@ -38,8 +38,37 @@ const Messages = () => {
       fetchChats();
     });
 
+    // Listen for read status updates
+    socket.on('messagesRead', ({ chatId, messageIds }) => {
+      console.log('Messages marked as read in Messages page:', messageIds);
+      // Update conversations to reflect read status changes
+      setConversations(prev => prev.map(conv => {
+        if (conv._id === chatId) {
+          // Update messages in this conversation
+          const updatedMessages = conv.messages?.map(msg => ({
+            ...msg,
+            read: messageIds.includes(msg._id) ? true : msg.read
+          })) || conv.messages;
+          
+          return {
+            ...conv,
+            messages: updatedMessages
+          };
+        }
+        return conv;
+      }));
+      
+      // Refresh unread count
+      chatAPI.getUnreadCount().then(res => {
+        setUnreadCount(res.data.unreadCount);
+      }).catch(err => {
+        console.error('Failed to update unread count:', err);
+      });
+    });
+
     return () => {
       socket.off('receiveMessage');
+      socket.off('messagesRead');
     };
   }, []);
 
