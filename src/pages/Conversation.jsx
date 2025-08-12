@@ -249,6 +249,7 @@ const Conversation = () => {
     );
   }
   const product = chat.product;
+  console.log(product);
 
   return (
     <div className="max-w-4xl mx-auto">
