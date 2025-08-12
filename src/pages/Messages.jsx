@@ -34,8 +34,38 @@ const Messages = () => {
     // Listen for new messages to update conversations list
     socket.on('receiveMessage', (message) => {
       console.log('New message received in Messages page:', message);
-      // Refresh conversations to show updated last message and unread count
-      fetchChats();
+      
+      // Update the specific conversation in real-time
+      setConversations(prev => {
+        const updated = prev.map(conv => {
+          if (conv._id === message.chat) {
+            // Update the last message and timestamp
+            return {
+              ...conv,
+              lastMessage: message.text,
+              lastMessageTime: message.createdAt,
+              messages: [...(conv.messages || []), message].slice(-10) // Keep only last 10 messages
+            };
+          }
+          return conv;
+        });
+        
+        // If no conversation was updated, refresh the entire list
+        if (updated.every(conv => conv._id !== message.chat)) {
+          console.log('Conversation not found in current list, refreshing...');
+          fetchChats();
+          return prev; // Return previous state while fetching
+        }
+        
+        return updated;
+      });
+      
+      // Also refresh unread count
+      chatAPI.getUnreadCount().then(res => {
+        setUnreadCount(res.data.unreadCount);
+      }).catch(err => {
+        console.error('Failed to update unread count:', err);
+      });
     });
 
     // Listen for read status updates
@@ -113,9 +143,24 @@ const Messages = () => {
               }
               
               // Get last message and unread count for this conversation
-              const lastMessage = conversation.lastMessage || (conversation.messages && conversation.messages.length > 0 ? conversation.messages[conversation.messages.length - 1].text : '');
-              const lastTimestamp = conversation.updatedAt || conversation.createdAt;
-              const timeAgo = lastTimestamp ? new Date(lastTimestamp).toLocaleString() : '';
+              const lastMessage = conversation.lastMessage || 'No messages yet';
+              const lastTimestamp = conversation.lastMessageTime || conversation.updatedAt || conversation.createdAt;
+              
+              // Format time as relative time (e.g., "2 hours ago", "yesterday")
+              const formatRelativeTime = (timestamp) => {
+                if (!timestamp) return '';
+                const now = new Date();
+                const messageTime = new Date(timestamp);
+                const diffInSeconds = Math.floor((now - messageTime) / 1000);
+                
+                if (diffInSeconds < 60) return 'Just now';
+                if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+                if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+                if (diffInSeconds < 172800) return 'Yesterday';
+                return messageTime.toLocaleDateString();
+              };
+              
+              const timeAgo = formatRelativeTime(lastTimestamp);
               
                              // Calculate unread messages for this conversation
                const currentUserId = localStorage.getItem('userId');
@@ -135,26 +180,26 @@ const Messages = () => {
                       {otherUser.avatar || otherUser.name?.charAt(0) || '👤'}
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <h3 className={`font-semibold ${hasUnread ? 'text-gray-900' : 'text-gray-700'}`}>
-                          {otherUser.name}
-                        </h3>
-                        <span className="text-sm text-gray-500">{timeAgo}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <p className={`text-sm ${hasUnread ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
-                          {lastMessage}
-                        </p>
-                        {hasUnread && (
-                          <div className="flex items-center space-x-2">
-                            <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
-                            <span className="text-xs text-blue-600 font-medium">
-                              {unreadMessages}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                       <div className="flex items-center justify-between">
+                         <h3 className={`font-semibold ${hasUnread ? 'text-gray-900' : 'text-gray-700'}`}>
+                           {otherUser.name}
+                         </h3>
+                         <span className="text-sm text-gray-500">{timeAgo}</span>
+                       </div>
+                       <div className="flex items-center justify-between mt-1">
+                         <p className={`text-sm ${hasUnread ? 'text-gray-900 font-medium' : 'text-gray-600'} line-clamp-1`}>
+                           {lastMessage}
+                         </p>
+                         {hasUnread && (
+                           <div className="flex items-center space-x-2 ml-2">
+                             <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                             <span className="text-xs text-blue-600 font-medium">
+                               {unreadMessages}
+                             </span>
+                           </div>
+                         )}
+                       </div>
+                     </div>
                   </div>
                 </Link>
               );

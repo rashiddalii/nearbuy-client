@@ -8,6 +8,7 @@ const Conversation = () => {
   const { conversationId } = useParams();
   const navigate = useNavigate();
   const messagesEndRef = useRef(null);
+  const chatIdRef = useRef(null); // Ref to track current chat ID
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [chat, setChat] = useState(null); // chat object from backend
@@ -30,6 +31,7 @@ const Conversation = () => {
           return;
         }
         setChat(foundChat);
+        chatIdRef.current = foundChat._id; // Update the ref
         // Get messages for this chat
         const msgRes = await chatAPI.getMessages(conversationId);
         setMessages(msgRes.data);
@@ -70,7 +72,10 @@ const Conversation = () => {
           
           // Mark new message as read if it's from other user
           if (message.sender !== currentUserId && message.sender?._id?.toString() !== currentUserId) {
-            markMessagesAsRead();
+            // Only mark as read if chat is loaded
+            if (chatIdRef.current) {
+              markMessagesAsRead();
+            }
           }
         });
 
@@ -119,17 +124,38 @@ const Conversation = () => {
   }, [conversationId, currentUserId]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
   };
 
+  const scrollToBottomImmediate = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "auto" });
+    }
+  };
+
+  // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
+  // Scroll to bottom immediately when conversation loads
+  useEffect(() => {
+    if (!loading && messages.length > 0) {
+      // Use immediate scroll for initial load
+      scrollToBottomImmediate();
+      // Then use smooth scroll after a short delay
+      setTimeout(() => {
+        scrollToBottom();
+      }, 200);
+    }
+  }, [loading, messages.length]);
+
   // Mark messages as read when user scrolls to view them
   useEffect(() => {
     const messagesContainer = document.querySelector('.messages-container');
-    if (messagesContainer) {
+    if (messagesContainer && chat) {
       const handleScroll = () => {
         const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
         // If user is near the bottom (within 100px), mark messages as read
@@ -145,11 +171,12 @@ const Conversation = () => {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !chat) return;
+    const chatId = chat?._id || chatIdRef.current;
+    if (!newMessage.trim() || !chatId) return;
     setSending(true);
     try {
       // Send message to backend
-      const res = await chatAPI.sendMessage({ chatId: chat._id, text: newMessage });
+      const res = await chatAPI.sendMessage({ chatId, text: newMessage });
       const newMessageData = res.data;
       
       // Add message to local state immediately
@@ -158,8 +185,8 @@ const Conversation = () => {
       // Emit to socket for real-time delivery to other users
       const socket = socketService.getSocket();
       if (socket && socketService.isSocketConnected()) {
-        console.log('Emitting message via socket:', { chatId: chat._id, message: newMessageData });
-        socket.emit('sendMessage', { chatId: chat._id, message: newMessageData });
+        console.log('Emitting message via socket:', { chatId, message: newMessageData });
+        socket.emit('sendMessage', { chatId, message: newMessageData });
       }
       
       setNewMessage('');
@@ -174,8 +201,15 @@ const Conversation = () => {
 
   // Function to mark messages as read
   const markMessagesAsRead = async () => {
+    // Check if chat is available
+    const chatId = chat?._id || chatIdRef.current;
+    if (!chatId) {
+      console.warn('Cannot mark messages as read: chat not loaded yet');
+      return;
+    }
+
     try {
-      const res = await chatAPI.markAsRead(chat._id);
+      const res = await chatAPI.markAsRead(chatId);
       
       // Get the message IDs that were marked as read
       const messageIds = res.data?.messageIds || [];
@@ -189,8 +223,8 @@ const Conversation = () => {
       // Emit read status to other users via socket
       const socket = socketService.getSocket();
       if (socket && socketService.isSocketConnected() && messageIds.length > 0) {
-        console.log('Emitting read status via socket:', { chatId: chat._id, messageIds });
-        socket.emit('markAsRead', { chatId: chat._id, messageIds });
+        console.log('Emitting read status via socket:', { chatId, messageIds });
+        socket.emit('markAsRead', { chatId, messageIds });
       }
     } catch (error) {
       console.error('Failed to mark messages as read:', error);
@@ -315,9 +349,9 @@ const Conversation = () => {
           </div>
         </div>
 
-        {/* Messages */}
-        <div className="messages-container h-96 overflow-y-auto p-6 space-y-4">
-                     {messages.map((message, index) => {
+         {/* Messages */}
+         <div className="messages-container h-96 overflow-y-auto p-6 space-y-4 scroll-smooth">
+           {messages.map((message, index) => {
              const isMe = message.sender === currentUserId || message.sender?._id?.toString() === currentUserId;
             const showDate = index === 0 || 
               formatDate(message.createdAt) !== formatDate(messages[index - 1]?.createdAt);
