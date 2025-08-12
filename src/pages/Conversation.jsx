@@ -377,25 +377,6 @@ const Conversation = () => {
           </form>
         </div>
       </div>
-
-      {/* Quick Actions */}
-      <div className="mt-6 bg-white rounded-lg shadow-sm p-4">
-        <h3 className="font-semibold text-gray-900 mb-3">Quick Actions</h3>
-        <div className="flex space-x-4">
-          <button className="text-blue-600 hover:text-blue-700 font-medium text-sm">
-            📞 Call
-          </button>
-          <button className="text-blue-600 hover:text-blue-700 font-medium text-sm">
-            📍 Share Location
-          </button>
-          <button className="text-blue-600 hover:text-blue-700 font-medium text-sm">
-            📷 Send Photo
-          </button>
-          <button className="text-red-600 hover:text-red-700 font-medium text-sm">
-            🚫 Block User
-          </button>
-        </div>
-      </div>
     </div>
   );
 };
