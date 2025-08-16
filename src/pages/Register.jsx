@@ -1,8 +1,8 @@
 import { useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { HiEye, HiEyeOff } from "react-icons/hi";
+import { authAPI } from "../services/api";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -56,7 +56,7 @@ export default function RegisterPage() {
     setError("");
 
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/register", form);
+      const res = await authAPI.register(form);
       if (res.data?.token) {
         toast.success("Registered successfully!");
         navigate("/login");

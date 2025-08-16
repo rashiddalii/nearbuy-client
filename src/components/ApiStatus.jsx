@@ -6,7 +6,7 @@ const ApiStatus = () => {
 
   useEffect(() => {
     // Check the root endpoint for health, not /api/
-    let apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    let apiUrl = import.meta.env.VITE_API_URL || 'https://nearbuy-server-j5wo.onrender.com';
     // Remove trailing /api if present
     apiUrl = apiUrl.replace(/\/api\/?$/, '');
     axios.get(`${apiUrl}/`).then(() => {

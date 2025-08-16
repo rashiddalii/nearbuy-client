@@ -9,7 +9,7 @@ class SocketService {
   connect() {
     if (!this.socket) {
       // For Socket.IO, we need to connect to the root server URL, not the API path
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://nearbuy-server-j5wo.onrender.com';
       const serverUrl = apiUrl.replace('/api', ''); // Remove /api from the URL for Socket.IO
       
       // Try the most basic connection possible

@@ -1,8 +1,8 @@
 import { useState } from "react";
-import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import { HiEye, HiEyeOff } from "react-icons/hi";
+import { authAPI } from "../services/api";
 import socketService from "../services/socket";
 
 export default function LoginPage() {
@@ -26,7 +26,7 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/login", form);
+      const res = await authAPI.login(form);
       if (res.data?.token) {
         localStorage.setItem("token", res.data.token);
         localStorage.setItem("userId", res.data.user._id);
