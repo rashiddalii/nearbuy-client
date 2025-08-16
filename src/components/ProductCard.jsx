@@ -1,7 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { savedItemsAPI } from '../services/api';
+import { toast } from 'react-toastify';
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, onItemRemoved }) => {
+  const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
   // Handle backend data structure
   const {
     _id: id,
@@ -17,6 +22,48 @@ const ProductCard = ({ product }) => {
     averageRating = 0,
     numReviews = 0
   } = product;
+
+  // Check if product is saved on component mount
+  useEffect(() => {
+    const checkSavedStatus = async () => {
+      try {
+        const response = await savedItemsAPI.checkIfSaved(id);
+        setIsSaved(response.data.isSaved);
+      } catch (error) {
+        // If user is not authenticated, product is not saved
+        setIsSaved(false);
+      }
+    };
+
+    checkSavedStatus();
+  }, [id]);
+
+  // Handle save/unsave
+  const handleSaveToggle = async () => {
+    if (isSaving) return;
+    
+    setIsSaving(true);
+    try {
+      if (isSaved) {
+        await savedItemsAPI.unsaveProduct(id);
+        setIsSaved(false);
+        toast.success('Product removed from saved items');
+        // Call callback if provided (for SavedItems page)
+        if (onItemRemoved) {
+          onItemRemoved(id);
+        }
+      } else {
+        await savedItemsAPI.saveProduct(id);
+        setIsSaved(true);
+        toast.success('Product saved successfully');
+      }
+    } catch (error) {
+      console.error('Error toggling save:', error);
+      toast.error(error.response?.data?.message || 'Failed to save/unsave product');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Get first image or use placeholder
   const imageUrl = images.length > 0 
@@ -109,8 +156,16 @@ const ProductCard = ({ product }) => {
           >
             View Details
           </Link>
-          <button className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-3 rounded-md text-sm font-medium transition-colors">
-            Save
+          <button 
+            onClick={handleSaveToggle}
+            disabled={isSaving}
+            className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+              isSaved 
+                ? 'bg-red-500 hover:bg-red-600 text-white' 
+                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+            } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            {isSaving ? '...' : isSaved ? 'Saved' : 'Save'}
           </button>
         </div>
       </div>

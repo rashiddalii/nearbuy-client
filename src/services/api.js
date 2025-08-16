@@ -83,3 +83,21 @@ export const reviewsAPI = {
   // Mark review as helpful/unhelpful
   markHelpful: (id, helpful) => API.post(`/reviews/${id}/helpful`, { helpful }),
 };
+
+// Saved Items API functions
+export const savedItemsAPI = {
+  // Save a product
+  saveProduct: (productId) => API.post(`/saved-items/${productId}`),
+  
+  // Unsave a product
+  unsaveProduct: (productId) => API.delete(`/saved-items/${productId}`),
+  
+  // Get user's saved items
+  getSavedItems: (params = {}) => API.get('/saved-items', { params }),
+  
+  // Check if a product is saved by current user
+  checkIfSaved: (productId) => API.get(`/saved-items/check/${productId}`),
+  
+  // Get saved items count for dashboard
+  getSavedItemsCount: () => API.get('/saved-items/count'),
+};

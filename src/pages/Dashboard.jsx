@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
-import { productsAPI, dashboardAPI } from '../services/api';
+import { productsAPI, dashboardAPI, savedItemsAPI } from '../services/api';
 import { toast } from 'react-toastify';
 
 
@@ -13,7 +13,8 @@ const Dashboard = () => {
     totalListings: 0,
     activeListings: 0,
     totalViews: 0,
-    totalSaves: 0
+    totalSaves: 0,
+    savedItemsCount: 0
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -49,14 +50,20 @@ const Dashboard = () => {
   // Fetch user stats
   const fetchUserStats = async () => {
     try {
-      const response = await productsAPI.getMyListings();
-      const userProducts = response.data;
+      const [listingsResponse, savedItemsResponse] = await Promise.all([
+        productsAPI.getMyListings(),
+        savedItemsAPI.getSavedItemsCount()
+      ]);
+      
+      const userProducts = listingsResponse.data;
+      const savedItemsCount = savedItemsResponse.data.count;
       
       const stats = {
         totalListings: userProducts.length,
         activeListings: userProducts.filter(p => p.status === 'active').length,
         totalViews: userProducts.reduce((sum, p) => sum + (p.views || 0), 0),
-        totalSaves: userProducts.reduce((sum, p) => sum + (p.saves || 0), 0)
+        totalSaves: userProducts.reduce((sum, p) => sum + (p.saves || 0), 0),
+        savedItemsCount: savedItemsCount
       };
       
       setUserStats(stats);
@@ -130,7 +137,7 @@ const Dashboard = () => {
       {/* Quick Actions */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <button
             onClick={() => navigate("/my-listings")}
             className="p-4 border-2 border-blue-200 rounded-lg hover:border-blue-400 transition-colors text-left"
@@ -146,6 +153,14 @@ const Dashboard = () => {
             <div className="text-green-600 text-2xl mb-2">➕</div>
             <h3 className="font-semibold text-gray-900">Add New Listing</h3>
             <p className="text-sm text-gray-600">Create a new product</p>
+          </button>
+          <button
+            onClick={() => navigate("/saved-items")}
+            className="p-4 border-2 border-orange-200 rounded-lg hover:border-orange-400 transition-colors text-left"
+          >
+            <div className="text-orange-600 text-2xl mb-2">💾</div>
+            <h3 className="font-semibold text-gray-900">Saved Items</h3>
+            <p className="text-sm text-gray-600">View your favorites</p>
           </button>
           <button
             onClick={() => navigate("/messages")}

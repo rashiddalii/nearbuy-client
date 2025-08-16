@@ -10,6 +10,7 @@ import MarketplacePage from "./pages/Marketplace";
 import ProductDetailPage from "./pages/ProductDetail";
 import AboutPage from "./pages/About";
 import MyListingsPage from "./pages/MyListings";
+import SavedItemsPage from "./pages/SavedItems";
 import MessagesPage from "./pages/Messages";
 import ConversationPage from "./pages/Conversation";
 import ProfilePage from "./pages/Profile";
@@ -102,6 +103,14 @@ export default function App() {
               element={
                 <PrivateRoute>
                   <MyListingsPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/saved-items"
+              element={
+                <PrivateRoute>
+                  <SavedItemsPage />
                 </PrivateRoute>
               }
             />

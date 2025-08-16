@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { productsAPI, chatAPI } from '../services/api';
+import { productsAPI, chatAPI, savedItemsAPI } from '../services/api';
 // import ReviewCard from '../components/ReviewCard';
 // import ReviewForm from '../components/ReviewForm';
 
@@ -17,6 +17,8 @@ const ProductDetail = () => {
   // const [reviewsLoading, setReviewsLoading] = useState(false);
   // const [showReviewForm, setShowReviewForm] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Fetch product data
   const fetchProduct = async () => {
@@ -55,6 +57,17 @@ const ProductDetail = () => {
   //   );
   // };
 
+  // Check if product is saved on component mount
+  const checkSavedStatus = async () => {
+    try {
+      const response = await savedItemsAPI.checkIfSaved(id);
+      setIsSaved(response.data.isSaved);
+    } catch (error) {
+      // If user is not authenticated, product is not saved
+      setIsSaved(false);
+    }
+  };
+
   useEffect(() => {
     fetchProduct();
     // fetchReviews(); // Temporarily disabled
@@ -64,6 +77,8 @@ const ProductDetail = () => {
     
     if (userId && userName) {
       setCurrentUser({ _id: userId, name: userName });
+      // Check saved status if user is logged in
+      checkSavedStatus();
     }
   }, [id]);
 
@@ -103,8 +118,42 @@ const ProductDetail = () => {
     }
   };
 
-  const handleSaveItem = () => {
-    toast.success('Item saved to your favorites!');
+  const handleSaveItem = async () => {
+    if (isSaving) return;
+    
+    // Check if user is logged in
+    if (!currentUser) {
+      toast.error('Please log in to save items');
+      return;
+    }
+    
+    setIsSaving(true);
+    try {
+      if (isSaved) {
+        await savedItemsAPI.unsaveProduct(id);
+        setIsSaved(false);
+        toast.success('Product removed from saved items');
+        // Update the saves count in the product
+        setProduct(prev => ({
+          ...prev,
+          saves: Math.max(0, (prev.saves || 0) - 1)
+        }));
+      } else {
+        await savedItemsAPI.saveProduct(id);
+        setIsSaved(true);
+        toast.success('Product saved successfully');
+        // Update the saves count in the product
+        setProduct(prev => ({
+          ...prev,
+          saves: (prev.saves || 0) + 1
+        }));
+      }
+    } catch (error) {
+      console.error('Error toggling save:', error);
+      toast.error(error.response?.data?.message || 'Failed to save/unsave product');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleShare = () => {
@@ -300,9 +349,14 @@ const ProductDetail = () => {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={handleSaveItem}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium transition-colors"
+                  disabled={isSaving}
+                  className={`py-3 px-6 rounded-lg font-medium transition-colors ${
+                    isSaved 
+                      ? 'bg-red-500 hover:bg-red-600 text-white' 
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                  } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  ❤️ Save Item
+                  {isSaving ? '...' : isSaved ? '❤️ Saved' : '❤️ Save Item'}
                 </button>
                 <button
                   onClick={handleShare}
