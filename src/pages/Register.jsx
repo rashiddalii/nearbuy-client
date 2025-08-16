@@ -43,7 +43,7 @@ export default function RegisterPage() {
   };
 
   const isNameValid = form.name.trim().length >= 4;
-  const isEmailValid = /^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(form.email);
+  const isEmailValid = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(form.email);
   const isPasswordStrong = passwordStrength === "strong";
 
   const isFormValid = isNameValid && isEmailValid && isPasswordStrong;
