@@ -19,6 +19,11 @@ export const authAPI = {
   updateProfile: (data) => API.put('/auth/me', data),
 };
 
+// User API functions
+export const userAPI = {
+  getStats: () => API.get('/users/stats'),
+};
+
 // Products API functions
 export const productsAPI = {
   // Get all products with filters

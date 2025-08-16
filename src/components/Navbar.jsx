@@ -77,7 +77,7 @@ const Navbar = () => {
               <span className="text-2xl">🛍️</span>
               <span className="text-xl font-bold text-gray-800">NearBuy</span>
             </Link>
-            <ApiStatus />
+            {/* <ApiStatus /> */}
           </div>
 
           {/* Navigation Links - Show different links based on auth status */}

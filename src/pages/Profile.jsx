@@ -1,19 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { authAPI } from '../services/api';
+import { useNavigate } from 'react-router-dom';
+import { authAPI, userAPI } from '../services/api';
 
 const Profile = () => {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [stats, setStats] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState({});
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const profileRes = await authAPI.getProfile();
+        
+        // Fetch profile and stats in parallel
+        const [profileRes, statsRes] = await Promise.all([
+          authAPI.getProfile(),
+          userAPI.getStats()
+        ]);
+        
         // Extract user data from API response
         const userData = profileRes.data.data;
         const profileData = {
@@ -24,14 +34,10 @@ const Profile = () => {
           bio: userData.bio || '',
           avatar: userData.avatar || '👤',
         };
+        
         setProfile(profileData);
         setFormData(profileData);
-        setStats({
-          listings: 0,
-          sold: 0,
-          rating: 0,
-          reviews: 0
-        });
+        setStats(statsRes.data.data);
       } catch (error) {
         if (error.response && error.response.status === 401) {
           toast.error("Session expired. Please log in again.");
@@ -45,11 +51,52 @@ const Profile = () => {
         setLoading(false);
       }
     };
-    fetchProfile();
+    fetchData();
   }, []);
 
+
+
+  // Validation functions
+  const validateForm = () => {
+    const newErrors = {};
+    
+    // Name validation
+    if (!formData.name || formData.name.trim().length < 2) {
+      newErrors.name = 'Name must be at least 2 characters long';
+    }
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email || !emailRegex.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    
+    // Phone validation (optional but if provided, must be valid)
+    if (formData.phone && formData.phone.trim()) {
+      const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+      if (!phoneRegex.test(formData.phone.replace(/[\s\-\(\)]/g, ''))) {
+        newErrors.phone = 'Please enter a valid phone number';
+      }
+    }
+    
+    // Bio validation (optional but if provided, must be reasonable length)
+    if (formData.bio && formData.bio.trim().length > 500) {
+      newErrors.bio = 'Bio must be less than 500 characters';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSave = async () => {
+    if (!validateForm()) {
+      toast.error('Please fix the errors before saving');
+      return;
+    }
+    
     try {
+      setIsSaving(true);
+      
       // Only send fields that have values to avoid overwriting with empty strings
       const updateData = {};
       Object.keys(formData).forEach(key => {
@@ -67,16 +114,20 @@ const Profile = () => {
       setProfile(updatedProfile);
       setFormData(updatedProfile);
       setIsEditing(false);
+      setErrors({});
       toast.success("Profile updated successfully!");
     } catch (error) {
       toast.error("Failed to update profile.");
       console.error("Error updating profile:", error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleCancel = () => {
     setFormData(profile);
     setIsEditing(false);
+    setErrors({});
   };
 
   if (loading) {
@@ -118,13 +169,23 @@ const Profile = () => {
             <div className="flex space-x-2">
               <button
                 onClick={handleSave}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+                disabled={isSaving}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  isSaving 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-green-600 hover:bg-green-700'
+                } text-white`}
               >
-                Save
+                {isSaving ? 'Saving...' : 'Save'}
               </button>
               <button
                 onClick={handleCancel}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors"
+                disabled={isSaving}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  isSaving 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-gray-600 hover:bg-gray-700'
+                } text-white`}
               >
                 Cancel
               </button>
@@ -143,12 +204,19 @@ const Profile = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                 {isEditing ? (
-                  <input
-                    type="text"
-                    value={formData.name || ''}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <div>
+                    <input
+                      type="text"
+                      value={formData.name || ''}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors.name ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    />
+                    {errors.name && (
+                      <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-gray-900">{profile.name || 'Not provided'}</p>
                 )}
@@ -157,12 +225,19 @@ const Profile = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                 {isEditing ? (
-                  <input
-                    type="email"
-                    value={formData.email || ''}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <div>
+                    <input
+                      type="email"
+                      value={formData.email || ''}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors.email ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    />
+                    {errors.email && (
+                      <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-gray-900">{profile.email || 'Not provided'}</p>
                 )}
@@ -171,13 +246,20 @@ const Profile = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                 {isEditing ? (
-                  <input
-                    type="tel"
-                    value={formData.phone || ''}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    placeholder="Enter your phone number"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <div>
+                    <input
+                      type="tel"
+                      value={formData.phone || ''}
+                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      placeholder="Enter your phone number (e.g., +923001234567)"
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors.phone ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    />
+                    {errors.phone && (
+                      <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-gray-900">{profile.phone || <span className="text-gray-500 italic">Not provided - Click edit to add</span>}</p>
                 )}
@@ -201,13 +283,23 @@ const Profile = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
                 {isEditing ? (
-                  <textarea
-                    value={formData.bio || ''}
-                    onChange={(e) => setFormData({...formData, bio: e.target.value})}
-                    rows={3}
-                    placeholder="Tell others about yourself, your selling experience, or what you specialize in..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <div>
+                    <textarea
+                      value={formData.bio || ''}
+                      onChange={(e) => setFormData({...formData, bio: e.target.value})}
+                      rows={3}
+                      placeholder="Tell others about yourself, your selling experience, or what you specialize in..."
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors.bio ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    />
+                    {errors.bio && (
+                      <p className="text-red-500 text-sm mt-1">{errors.bio}</p>
+                    )}
+                    <p className="text-gray-500 text-sm mt-1">
+                      {formData.bio ? formData.bio.length : 0}/500 characters
+                    </p>
+                  </div>
                 ) : (
                   <p className="text-gray-900">{profile.bio || <span className="text-gray-500 italic">No bio provided - Click edit to add a description about yourself</span>}</p>
                 )}
@@ -215,7 +307,7 @@ const Profile = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          {/* <div className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Account Settings</h2>
             <div className="space-y-4">
               <button className="text-blue-600 hover:text-blue-700 font-medium">
@@ -228,7 +320,7 @@ const Profile = () => {
                 Privacy Settings
               </button>
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Sidebar */}
@@ -243,12 +335,23 @@ const Profile = () => {
             
             <div className="grid grid-cols-2 gap-4 text-center">
               <div>
-                <div className="text-2xl font-bold text-gray-900">{stats.listings || 0}</div>
+                <div className="text-2xl font-bold text-blue-600">{stats.activeListings || 0}</div>
                 <div className="text-sm text-gray-600">Active Listings</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-gray-900">{stats.sold || 0}</div>
+                <div className="text-2xl font-bold text-green-600">{stats.soldItems || 0}</div>
                 <div className="text-sm text-gray-600">Items Sold</div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 text-center mt-4">
+              <div>
+                <div className="text-lg font-bold text-purple-600">{stats.totalViews || 0}</div>
+                <div className="text-sm text-gray-600">Total Views</div>
+              </div>
+              <div>
+                <div className="text-lg font-bold text-red-600">{stats.totalSaves || 0}</div>
+                <div className="text-sm text-gray-600">Total Saves</div>
               </div>
             </div>
           </div>
@@ -258,9 +361,9 @@ const Profile = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-3">Seller Rating</h3>
             <div className="text-center">
               <div className="text-3xl font-bold text-yellow-600 mb-2">
-                ⭐ {stats.rating ? stats.rating.toFixed(1) : 'N/A'}
+                ⭐ {stats.averageRating ? stats.averageRating.toFixed(1) : 'N/A'}
               </div>
-              <p className="text-gray-600 text-sm">{stats.reviews || 0} reviews</p>
+              <p className="text-gray-600 text-sm">{stats.totalReviews || 0} reviews</p>
             </div>
           </div>
 
@@ -268,14 +371,29 @@ const Profile = () => {
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">Quick Actions</h3>
             <div className="space-y-2">
-              <button className="w-full text-left text-blue-600 hover:text-blue-700 py-2">
-                View My Listings
+              <button 
+                onClick={() => navigate('/my-listings')}
+                className="w-full text-left text-blue-600 hover:text-blue-700 py-2 transition-colors"
+              >
+                📝 View My Listings
               </button>
-              <button className="w-full text-left text-blue-600 hover:text-blue-700 py-2">
-                View Messages
+              <button 
+                onClick={() => navigate('/messages')}
+                className="w-full text-left text-blue-600 hover:text-blue-700 py-2 transition-colors"
+              >
+                💬 View Messages
               </button>
-              <button className="w-full text-left text-blue-600 hover:text-blue-700 py-2">
-                View Reviews
+              <button 
+                onClick={() => navigate('/saved-items')}
+                className="w-full text-left text-blue-600 hover:text-blue-700 py-2 transition-colors"
+              >
+                💾 Saved Items
+              </button>
+              <button 
+                onClick={() => navigate('/add-listing')}
+                className="w-full text-left text-blue-600 hover:text-blue-700 py-2 transition-colors"
+              >
+                ➕ Add New Listing
               </button>
             </div>
           </div>
