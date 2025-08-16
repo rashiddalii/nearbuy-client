@@ -73,7 +73,7 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo and Brand */}
           <div className="flex items-center">
-            <Link to="/" className="flex items-center space-x-2">
+            <Link to={token ? "/dashboard" : "/"} className="flex items-center space-x-2">
               <span className="text-2xl">🛍️</span>
               <span className="text-xl font-bold text-gray-800">NearBuy</span>
             </Link>

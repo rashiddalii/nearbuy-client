@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
 import RegisterPage from "./pages/Register";
 import LoginPage from "./pages/Login";
@@ -30,15 +30,32 @@ export default function App() {
     }
   }, []);
 
+  const token = localStorage.getItem('token');
+
   return (
     <>
       <Navbar />
       <main className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/marketplace" element={<MarketplacePage />} />
-            <Route path="/about" element={<AboutPage />} />
+            <Route 
+              path="/" 
+              element={
+                token ? <Navigate to="/dashboard" replace /> : <HomePage />
+              } 
+            />
+            <Route 
+              path="/marketplace" 
+              element={
+                token ? <Navigate to="/dashboard" replace /> : <MarketplacePage />
+              } 
+            />
+            <Route 
+              path="/about" 
+              element={
+                token ? <Navigate to="/dashboard" replace /> : <AboutPage />
+              } 
+            />
             <Route path="/product/:id" element={<ProductDetailPage />} />
             <Route
               path="/register"
