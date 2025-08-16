@@ -92,7 +92,7 @@ NearBuy Frontend is a modern, responsive React application that provides an intu
 
 ### Step 1: Clone the Repository
 ```bash
-git clone https://github.com/rashidd_alii/nearbuy-client.git
+git clone https://github.com/rashiddalii/nearbuy-client.git
 cd nearbuy-client
 ```
 
@@ -267,7 +267,7 @@ The backend provides:
 
 If you have any questions or need help:
 - 📧 Email: mrashidali7540@gmail.com
-- 🐛 Issues: [GitHub Issues](https://github.com/rashidd_alii/nearbuy-client/issues)
+- 🐛 Issues: [GitHub Issues](https://github.com/rashiddalii/nearbuy-client/issues)
 
 ---
 
