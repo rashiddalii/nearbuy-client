@@ -57,7 +57,7 @@ const About = () => {
     <div className="space-y-16">
       {/* Hero Section */}
       <section className="text-center">
-        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+        <h1 className="lg:text-4xl text-2xl md:text-5xl font-bold text-gray-900 mb-6">
           About NearBuy
         </h1>
         <p className="text-xl text-gray-600 max-w-3xl mx-auto">
@@ -68,8 +68,8 @@ const About = () => {
 
       {/* Mission Section */}
       <section className="bg-white rounded-lg p-8">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-6">Our Mission</h2>
+        <div className="max-w-5xl mx-auto text-center">
+          <h2 className="lg:text-3xl text-2xl font-bold text-gray-900 mb-6">Our Mission</h2>
           <p className="text-lg text-gray-600 leading-relaxed">
             NearBuy was born from a simple idea: what if buying and selling locally 
             could be as easy and safe as shopping online? We believe that the best 
@@ -110,7 +110,7 @@ const About = () => {
             The principles that guide everything we do
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {values.map((value, index) => (
             <div key={index} className="bg-white p-6 rounded-lg shadow-sm text-center">
               <div className="text-4xl mb-4">{value.icon}</div>
