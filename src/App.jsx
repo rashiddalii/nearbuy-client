@@ -17,6 +17,7 @@ import ProfilePage from "./pages/Profile";
 import PrivateRoute from "./components/PrivateRoute";
 import PublicRoute from "./components/PublicRoute";
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import socketService from "./services/socket";
 
 import { ToastContainer } from "react-toastify";
@@ -144,6 +145,7 @@ export default function App() {
         </div>
       </main>
       <ToastContainer position="top-right" autoClose={3000} />
+      <Footer />
     </>
   );
 }

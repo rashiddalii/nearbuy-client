@@ -10,6 +10,7 @@ const Navbar = () => {
   const location = useLocation();
   const token = localStorage.getItem('token');
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -67,6 +68,11 @@ const Navbar = () => {
     }
   }, [token]);
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
+
   return (
     <nav className="bg-white shadow-lg border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -80,7 +86,7 @@ const Navbar = () => {
             {/* <ApiStatus /> */}
           </div>
 
-          {/* Navigation Links - Show different links based on auth status */}
+          {/* Navigation Links - desktop */}
           <div className="hidden md:flex items-center space-x-8">
             {token ? (
               // Authenticated user navigation
@@ -168,8 +174,8 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Auth Buttons */}
-          <div className="flex items-center space-x-4">
+          {/* Auth Buttons - desktop */}
+          <div className="hidden md:flex items-center space-x-4">
             {token ? (
               <>
                 <Link
@@ -202,7 +208,153 @@ const Navbar = () => {
               </>
             )}
           </div>
+
+          {/* Mobile hamburger */}
+          <div className="md:hidden flex items-center">
+            <button
+              type="button"
+              className="p-2 rounded-md text-gray-700 hover:bg-gray-100 focus-ring"
+              aria-label="Toggle menu"
+              aria-expanded={isMobileMenuOpen}
+              onClick={() => setIsMobileMenuOpen((v) => !v)}
+            >
+              {isMobileMenuOpen ? (
+                // X icon
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                // Hamburger icon
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile menu panel */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t">
+            <div className="py-3 space-y-1">
+              {token ? (
+                <>
+                  <Link 
+                    to="/dashboard"
+                    className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                      isActive('/dashboard')
+                        ? 'text-blue-600 bg-blue-50'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    Dashboard
+                  </Link>
+                  <Link 
+                    to="/my-listings"
+                    className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                      isActive('/my-listings')
+                        ? 'text-blue-600 bg-blue-50'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    My Listings
+                  </Link>
+                  <Link 
+                    to="/messages"
+                    className={`relative block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                      isActive('/messages')
+                        ? 'text-blue-600 bg-blue-50'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    Messages
+                    {unreadCount > 0 && (
+                      <span className="absolute top-1 right-2 bg-red-500 text-white text-xs rounded-full h-5 px-2 flex items-center justify-center">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
+                  </Link>
+                  <Link 
+                    to="/profile"
+                    className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                      isActive('/profile')
+                        ? 'text-blue-600 bg-blue-50'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    Profile
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link 
+                    to="/"
+                    className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                      isActive('/')
+                        ? 'text-blue-600 bg-blue-50'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    Home
+                  </Link>
+                  <Link 
+                    to="/marketplace"
+                    className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                      isActive('/marketplace')
+                        ? 'text-blue-600 bg-blue-50'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    Marketplace
+                  </Link>
+                  <Link 
+                    to="/about"
+                    className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                      isActive('/about')
+                        ? 'text-blue-600 bg-blue-50'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    About
+                  </Link>
+                </>
+              )}
+            </div>
+            <div className="border-t py-3 flex flex-col gap-2">
+              {token ? (
+                <>
+                  <Link
+                    to="/add-listing"
+                    className="bg-blue-600 hover:bg-blue-700 text-white w-full text-center px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    + Add Listing
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="bg-red-500 hover:bg-red-600 text-white w-full px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="text-gray-700 hover:bg-gray-100 w-full text-center px-3 py-2 rounded-md text-base font-medium"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="bg-blue-600 hover:bg-blue-700 text-white w-full text-center px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    Register
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );

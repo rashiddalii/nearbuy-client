@@ -103,7 +103,7 @@ const AddListing = () => {
     <div className="max-w-2xl mx-auto">
       <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Create New Listing</h1>
+          <h1 className="lg:text-3xl text-2xl font-bold text-gray-900 mb-2">Create New Listing</h1>
           <p className="text-gray-600">Share your item with the community</p>
         </div>
 

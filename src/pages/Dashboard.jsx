@@ -95,8 +95,8 @@ const Dashboard = () => {
       {/* Page Header */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <div className='w-2/3'> 
+            <h1 className="lg:text-3xl text-2xl font-bold text-gray-900 mb-2">
               Dashboard
             </h1>
             <p className="text-gray-600">
@@ -105,7 +105,7 @@ const Dashboard = () => {
           </div>
           <button
             onClick={() => navigate("/add-listing")}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+            className="bg-blue-600 w-1/3 hover:bg-blue-700 text-white px-3 py-3 rounded-lg font-medium transition-colors"
           >
             + Add Listing
           </button>
@@ -115,7 +115,7 @@ const Dashboard = () => {
 
 
       {/* User Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow-sm p-6 text-center">
           <div className="text-2xl font-bold text-blue-600">{userStats.totalListings}</div>
           <div className="text-gray-600">My Listings</div>
@@ -137,7 +137,7 @@ const Dashboard = () => {
       {/* Quick Actions */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <button
             onClick={() => navigate("/my-listings")}
             className="p-4 border-2 border-blue-200 rounded-lg hover:border-blue-400 transition-colors text-left"
@@ -180,7 +180,7 @@ const Dashboard = () => {
         </div>
 
         {/* Search and Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="md:col-span-2">
             <input
               type="text"

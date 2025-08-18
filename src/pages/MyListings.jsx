@@ -68,7 +68,7 @@ const MyListings = () => {
       <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">My Listings</h1>
+            <h1 className="lg:text-3xl text-2xl font-bold text-gray-900 mb-2">My Listings</h1>
             <p className="text-gray-600">Manage your product listings</p>
           </div>
           <Link
@@ -81,7 +81,7 @@ const MyListings = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow-sm p-6 text-center">
           <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
           <div className="text-gray-600">Total Listings</div>
