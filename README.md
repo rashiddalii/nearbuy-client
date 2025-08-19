@@ -245,7 +245,7 @@ This project is licensed under the MIT License - see the [LICENSE](../LICENSE) f
 
 This frontend connects to the NearBuy backend API. For the complete full-stack application:
 
-**Backend Repository**: [NearBuy Backend](https://github.com/rashdidd_alii/nearbuy-server)
+**Backend Repository**: [NearBuy Backend](https://github.com/rashiddalii/nearbuy-server)
 
 The backend provides:
 - RESTful API endpoints
