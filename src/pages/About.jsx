@@ -34,22 +34,34 @@ const About = () => {
 
   const team = [
     {
-      name: "Sarah Johnson",
-      role: "Founder & CEO",
+      name: "Abdullah Safdar",
+      role: "Frontend/Backend",
       bio: "Former e-commerce executive with 10+ years building community platforms.",
-      avatar: "👩‍💼"
+      avatar: "https://scontent.flyp9-1.fna.fbcdn.net/v/t39.30808-1/532510170_122111311472959059_6255053586251695716_n.jpg?stp=c0.47.372.372a_dst-jpg_s200x200_tt6&_nc_cat=109&ccb=1-7&_nc_sid=1d2534&_nc_eui2=AeHOffl1NzgeizBG3jKfdLsSOuMRSQp_g_s64xFJCn-D-3HkAKwadb4ZxW_f5cjSMfO9eShQZFGx_DW4nJAIpyre&_nc_ohc=x6Xv6e7qb1oQ7kNvwFXiJIk&_nc_oc=Adkz5sCPML-YREGYOX2DubAI3JtJHt6rvwAkesjqv9QdeWiYyHQKD4PzgX-1cWVDEtY&_nc_zt=24&_nc_ht=scontent.flyp9-1.fna&_nc_gid=T6nUErqyey8158t9ZorT2w&oh=00_AfWK7f03gajSFSUJz_7RTTfFiCNotx0LE9CiF-sdNymmQw&oe=68ACC22B"
     },
     {
-      name: "Mike Chen",
-      role: "CTO",
+      name: "Rashid Ali",
+      role: "Frontend/PHP",
       bio: "Full-stack developer passionate about creating seamless user experiences.",
-      avatar: "👨‍💻"
+      avatar: "https://media.licdn.com/dms/image/v2/D4D35AQFu1047ZL4w6g/profile-framedphoto-shrink_800_800/B4DZhGrTZ7H4Ag-/0/1753532414005?e=1756382400&v=beta&t=pahCWgzCcbVZ0c4YJZulQ7x20UM_yb-mXUHCHK9Vvmk"
     },
     {
-      name: "Emma Davis",
-      role: "Head of Community",
+      name: "Ahmad Abdullah",
+      role: "Web Designer",
       bio: "Community builder with expertise in user engagement and safety.",
-      avatar: "👩‍🎨"
+      avatar: "https://media.licdn.com/dms/image/v2/D4D35AQEte-dFdiIggg/profile-framedphoto-shrink_800_800/profile-framedphoto-shrink_800_800/0/1697379566809?e=1756382400&v=beta&t=xHFzvrwhsnx2S4y_TDQUcIIIT1VDF6Ru-Hwzyo5ry-I"
+    },
+    {
+      name: "Ghulam Mustafa",
+      role: "Frontend/Backend",
+      bio: "Former e-commerce executive with 10+ years building community platforms.",
+      avatar: "https://media.licdn.com/dms/image/v2/D4D03AQFxhO2kWJje3A/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1702910637359?e=1758758400&v=beta&t=Z67_lAE0wHSdqLrgswkAY9Gj_m5IXLn59qMUYN66VIA"
+    },
+     {
+      name: "Shawaiz Khan",
+      role: "Web Desinger",
+      bio: "Former e-commerce executive with 10+ years building community platforms.",
+      avatar: "https://media.licdn.com/dms/image/v2/D4D03AQFLmnBd8Pc06A/profile-displayphoto-crop_800_800/B4DZioFAKRHsAI-/0/1755166541259?e=1758758400&v=beta&t=2TCOG6iTCLHuB37ie_aV9MAh5Gwv1QNzN_3htkiM1pI"
     }
   ];
 
@@ -131,8 +143,8 @@ const About = () => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
           {team.map((member, index) => (
-            <div key={index} className="bg-white p-6 rounded-lg shadow-sm text-center">
-              <div className="text-6xl mb-4">{member.avatar}</div>
+            <div key={index} className="bg-white p-6 rounded-lg shadow-sm text-center justify-center items-center">
+              <div className="text-6xl mb-4 items-center text-center flex justify-center"><img src={member.avatar} className='rounded-full' height={70} width={70} alt="" /></div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">{member.name}</h3>
               <p className="text-blue-600 font-medium mb-3">{member.role}</p>
               <p className="text-gray-600 text-sm">{member.bio}</p>
@@ -147,8 +159,8 @@ const About = () => {
           <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">Our Story</h2>
           <div className="space-y-6 text-gray-600 leading-relaxed">
             <p>
-              NearBuy started in 2023 when our founder, Sarah, was trying to sell some 
-              furniture before moving. She found that existing platforms were either too 
+              NearBuy started in 2025 when we was trying to sell some 
+              furniture before moving. We found that existing platforms were either too 
               impersonal or too risky for local transactions.
             </p>
             <p>
